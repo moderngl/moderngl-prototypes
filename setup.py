@@ -171,7 +171,7 @@ setup(
     project_urls=project_urls,
     classifiers=classifiers,
     keywords=keywords,
-    packages=['moderngl', 'moderngl.program_members'],
+    packages=['moderngl'],
     py_modules=['_moderngl'],
     ext_modules=[mgl],
     platforms=['any'],
