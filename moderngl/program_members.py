@@ -1,33 +1,6 @@
 from typing import Any
 
-from _moderngl import Attribute  # noqa
-from _moderngl import UniformBlock  # noqa
-
-
-class Subroutine:
-    """This class represents a program subroutine."""
-
-    def __init__(self):
-        self._index = None
-        self._name = None
-        self.extra = None  #: Any - Attribute for storing user defined objects
-        raise TypeError()
-
-    def __repr__(self) -> str:
-        return '<Subroutine: %d>' % self._index
-
-    def __hash__(self) -> int:
-        return id(self)
-
-    @property
-    def index(self) -> int:
-        """int: The index of the subroutine."""
-        return self._index
-
-    @property
-    def name(self) -> str:
-        """str: The name of the subroutine."""
-        return self._name
+from _moderngl import Attribute, UniformBlock, Subroutine, Varying  # noqa
 
 
 class Uniform:
@@ -200,31 +173,3 @@ class Uniform:
     def write(self, data: Any) -> None:
         """Write the value of the uniform."""
         self.mglo.data = data
-
-
-class Varying:
-    """This class represents a program varying."""
-
-    def __init__(self):
-        self._number = None
-        self._array_length = None
-        self._dimension = None
-        self._name = None
-        self.extra: Any = None  #: Attribute for storing user defined objects
-        raise TypeError()
-
-    def __repr__(self) -> str:
-        return '<Varying: %d>' % self.number
-
-    def __hash__(self) -> int:
-        return id(self)
-
-    @property
-    def number(self) -> int:
-        """int: The number of the varying."""
-        return self._number
-
-    @property
-    def name(self) -> str:
-        """str: The name of the varying."""
-        return self._name

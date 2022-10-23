@@ -472,12 +472,7 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
 
 		gl.GetTransformFeedbackVarying(program->program_obj, i, 256, &name_len, &array_length, (GLenum *)&type, name);
 
-		PyObject * item = PyTuple_New(4);
-		PyTuple_SET_ITEM(item, 0, PyLong_FromLong(i));
-		PyTuple_SET_ITEM(item, 1, PyLong_FromLong(array_length));
-		PyTuple_SET_ITEM(item, 2, PyLong_FromLong(dimension));
-		PyTuple_SET_ITEM(item, 3, PyUnicode_FromStringAndSize(name, name_len));
-
+        PyObject * item = PyObject_CallMethod(helper, "make_varying", "(siii)", name, i, array_length, dimension);
 		PyTuple_SET_ITEM(varyings_lst, i, item);
 	}
 
@@ -565,9 +560,7 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
 				gl.GetActiveSubroutineName(program_obj, shader_type[st], i, 256, &name_len, name);
 				int index = gl.GetSubroutineIndex(program_obj, shader_type[st], name);
 
-				PyObject * item = PyTuple_New(2);
-				PyTuple_SET_ITEM(item, 0, PyLong_FromLong(index));
-				PyTuple_SET_ITEM(item, 1, PyUnicode_FromStringAndSize(name, name_len));
+                PyObject * item = PyObject_CallMethod(helper, "make_subroutine", "(si)", name, index);
 				PyTuple_SET_ITEM(subroutines_lst, subroutines_base + i, item);
 			}
 

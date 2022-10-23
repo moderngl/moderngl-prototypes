@@ -216,6 +216,61 @@ class UniformBlock:
         return self._size
 
 
+
+class Subroutine:
+    """This class represents a program subroutine."""
+
+    def __init__(self):
+        self._index = None
+        self._name = None
+        self.extra = None  #: Any - Attribute for storing user defined objects
+
+    def __repr__(self) -> str:
+        return '<Subroutine: %d>' % self._index
+
+    @property
+    def mglo(self):
+        return self
+
+    @property
+    def index(self) -> int:
+        """int: The index of the subroutine."""
+        return self._index
+
+    @property
+    def name(self) -> str:
+        """str: The name of the subroutine."""
+        return self._name
+
+
+class Varying:
+    """This class represents a program varying."""
+
+    def __init__(self):
+        self._number = None
+        self._array_length = None
+        self._dimension = None
+        self._name = None
+        self.extra: Any = None  #: Attribute for storing user defined objects
+
+    def __repr__(self) -> str:
+        return '<Varying: %d>' % self.number
+
+    @property
+    def mglo(self):
+        return self
+
+    @property
+    def number(self) -> int:
+        """int: The number of the varying."""
+        return self._number
+
+    @property
+    def name(self) -> str:
+        """str: The name of the varying."""
+        return self._name
+
+
 class Error(Exception):
     """Generic moderngl error."""
     pass
@@ -285,4 +340,19 @@ def make_uniform_block(name, program_obj, index, size, ctx):
     res._index = index
     res._size = size
     res._ctx = ctx
+    return res
+
+
+def make_subroutine(name, index):
+    res = Subroutine()
+    res._name = name
+    res._index = index
+    return res
+
+
+def make_varying(name, number, array_length, dimension):
+    res = Varying()
+    res._name = name
+    res._array_length = array_length
+    res._dimension = dimension
     return res

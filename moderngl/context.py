@@ -1564,9 +1564,7 @@ class Context:
             members[item.name] = item
 
         for item in ls2:
-            obj = Varying.__new__(Varying)
-            obj._number, obj._array_length, obj._dimension, obj._name = item
-            members[obj.name] = obj
+            members[item.name] = item
 
         for item in ls3:
             obj = Uniform.__new__(Uniform)
@@ -1577,9 +1575,7 @@ class Context:
             members[item.name] = item
 
         for item in ls5:
-            obj = Subroutine.__new__(Subroutine)
-            obj._index, obj._name = item
-            members[obj.name] = obj
+            members[item.name] = item
 
         res._members = members
         res._is_transform = fragment_shader is None
