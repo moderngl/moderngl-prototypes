@@ -327,17 +327,6 @@ PyMethodDef MGL_module_methods[] = {
 
 bool MGL_InitializeModule(PyObject * module) {
 	{
-		if (PyType_Ready(&MGLAttribute_Type) < 0) {
-			PyErr_Format(PyExc_ImportError, "Cannot register Attribute in %s (%s:%d)", __FUNCTION__, __FILE__, __LINE__);
-			return false;
-		}
-
-		Py_INCREF(&MGLAttribute_Type);
-
-		PyModule_AddObject(module, "Attribute", (PyObject *)&MGLAttribute_Type);
-	}
-
-	{
 		if (PyType_Ready(&MGLBuffer_Type) < 0) {
 			PyErr_Format(PyExc_ImportError, "Cannot register Buffer in %s (%s:%d)", __FUNCTION__, __FILE__, __LINE__);
 			return false;
@@ -528,12 +517,19 @@ PyModuleDef MGL_moduledef = {
 	0,
 };
 
+PyObject * helper;
+
 extern "C" PyObject * PyInit_mgl() {
 	PyObject * module = PyModule_Create(&MGL_moduledef);
 
 	if (!MGL_InitializeModule(module)) {
 		return 0;
 	}
+
+    helper = PyImport_ImportModule("_moderngl");
+    if (!helper) {
+        return NULL;
+    }
 
 	return module;
 }

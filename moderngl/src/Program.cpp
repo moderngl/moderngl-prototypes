@@ -455,21 +455,10 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
 
 		clean_glsl_name(name, name_len);
 
-		MGLAttribute * mglo = (MGLAttribute *)MGLAttribute_Type.tp_alloc(&MGLAttribute_Type, 0);
-        mglo->released = false;
-		mglo->type = type;
-		mglo->location = location;
-		mglo->array_length = array_length;
-		mglo->program_obj = program->program_obj;
-		MGLAttribute_Complete(mglo, gl);
-
-		PyObject * item = PyTuple_New(6);
-		PyTuple_SET_ITEM(item, 0, (PyObject *)mglo);
-		PyTuple_SET_ITEM(item, 1, PyLong_FromLong(location));
-		PyTuple_SET_ITEM(item, 2, PyLong_FromLong(array_length));
-		PyTuple_SET_ITEM(item, 3, PyLong_FromLong(mglo->dimension));
-		PyTuple_SET_ITEM(item, 4, PyUnicode_FromFormat("%c", mglo->shape));
-		PyTuple_SET_ITEM(item, 5, PyUnicode_FromStringAndSize(name, name_len));
+        PyObject * item = PyObject_CallMethod(
+            helper, "make_attribute", "(siiii)",
+            name, type, program->program_obj, location, array_length
+        );
 
 		PyTuple_SET_ITEM(attributes_lst, i, item);
 	}

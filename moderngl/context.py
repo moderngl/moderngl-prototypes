@@ -1450,7 +1450,7 @@ class Context:
         members = program._members
         index_buffer_mglo = None if index_buffer is None else index_buffer.mglo
         mgl_content = tuple(
-            (a.mglo, b) + tuple(getattr(members.get(x), 'mglo', None) for x in c)
+            (a.mglo, b) + tuple(members.get(x) for x in c)
             for a, b, *c in content
         )
 
@@ -1561,9 +1561,7 @@ class Context:
         members = {}
 
         for item in ls1:
-            obj = Attribute.__new__(Attribute)
-            obj.mglo, obj._location, obj._array_length, obj._dimension, obj._shape, obj._name = item
-            members[obj.name] = obj
+            members[item.name] = item
 
         for item in ls2:
             obj = Varying.__new__(Varying)

@@ -83,7 +83,6 @@ mgl = Extension(
     extra_link_args=extra_linker_args[target],
     sources=[
         'moderngl/src/Sampler.cpp',
-        'moderngl/src/Attribute.cpp',
         'moderngl/src/Buffer.cpp',
         'moderngl/src/BufferFormat.cpp',
         'moderngl/src/ComputeShader.cpp',

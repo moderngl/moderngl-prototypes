@@ -2,9 +2,6 @@
 
 #include "BufferFormat.hpp"
 
-typedef void (GLAPI * gl_attribute_normal_ptr_proc)(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void * pointer);
-typedef void (GLAPI * gl_attribute_ptr_proc)(GLuint index, GLint size, GLenum type, GLsizei stride, const void * pointer);
-
 PyObject * MGLContext_vertex_array(MGLContext * self, PyObject * args) {
 	MGLProgram * program;
 	PyObject * content;
@@ -84,28 +81,6 @@ PyObject * MGLContext_vertex_array(MGLContext * self, PyObject * args) {
 			MGLError_Set("content[%d][1] and content[%d][2] size mismatch %d != %d", i, i, format_info.nodes, attributes_len);
 			return 0;
 		}
-
-		for (int j = 0; j < attributes_len; ++j) {
-			FormatNode * node = it.next();
-
-			while (!node->type) {
-				node = it.next();
-			}
-
-			MGLAttribute * attribute = (MGLAttribute *)PyTuple_GET_ITEM(tuple, j + 2);
-
-			if (!skip_errors) {
-				if (Py_TYPE(attribute) != &MGLAttribute_Type) {
-					MGLError_Set("content[%d][%d] must be an attribute not %s", i, j + 2, Py_TYPE(attribute)->tp_name);
-					return 0;
-				}
-
-				if (node->count % attribute->rows_length) {
-					MGLError_Set("invalid format");
-					return 0;
-				}
-			}
-		}
 	}
 
 	if (index_buffer != (MGLBuffer *)Py_None && Py_TYPE(index_buffer) != &MGLBuffer_Type) {
@@ -183,28 +158,40 @@ PyObject * MGLContext_vertex_array(MGLContext * self, PyObject * args) {
 				node = it.next();
 			}
 
-			MGLAttribute * attribute = (MGLAttribute *)PyTuple_GET_ITEM(tuple, j + 2);
+			PyObject * attribute = PyTuple_GET_ITEM(tuple, j + 2);
 
-			if (attribute == (MGLAttribute *)Py_None) {
+			if (attribute == Py_None) {
 				ptr += node->size;
 				continue;
 			}
 
-			for (int r = 0; r < attribute->rows_length; ++r) {
-				int location = attribute->location + r;
-				int count = node->count / attribute->rows_length;
+            PyObject * attribute_location_py = PyObject_GetAttrString(attribute, "_location");
+            PyObject * attribute_rows_length_py = PyObject_GetAttrString(attribute, "_rows_length");
+            PyObject * attribute_scalar_type_py = PyObject_GetAttrString(attribute, "_scalar_type");
+            if (!attribute_location_py || !attribute_rows_length_py || !attribute_scalar_type_py) {
+                return NULL;
+            }
 
-				if (attribute->normalizable) {
-					((gl_attribute_normal_ptr_proc)attribute->gl_attrib_ptr_proc)(location, count, node->type, node->normalize, format_info.size, ptr);
-				} else {
-					((gl_attribute_ptr_proc)attribute->gl_attrib_ptr_proc)(location, count, node->type, format_info.size, ptr);
-				}
+            int attribute_location = PyLong_AsLong(attribute_location_py);
+            int attribute_rows_length = PyLong_AsLong(attribute_rows_length_py);
+            int attribute_scalar_type = PyLong_AsLong(attribute_scalar_type_py);
+
+			for (int r = 0; r < attribute_rows_length; ++r) {
+				int location = attribute_location + r;
+				int count = node->count / attribute_rows_length;
+
+                switch (attribute_scalar_type) {
+                    case GL_FLOAT: gl.VertexAttribPointer(location, count, node->type, node->normalize, format_info.size, ptr); break;
+                    case GL_DOUBLE: gl.VertexAttribLPointer(location, count, node->type, format_info.size, ptr); break;
+                    case GL_INT: gl.VertexAttribIPointer(location, count, node->type, format_info.size, ptr); break;
+                    case GL_UNSIGNED_INT: gl.VertexAttribIPointer(location, count, node->type, format_info.size, ptr); break;
+                }
 
 				gl.VertexAttribDivisor(location, format_info.divisor);
 
 				gl.EnableVertexAttribArray(location);
 
-				ptr += node->size / attribute->rows_length;
+				ptr += node->size / attribute_rows_length;
 			}
 		}
 	}
