@@ -100,7 +100,6 @@ mgl = Extension(
         'moderngl/src/TextureArray.cpp',
         'moderngl/src/TextureCube.cpp',
         'moderngl/src/Uniform.cpp',
-        'moderngl/src/UniformBlock.cpp',
         'moderngl/src/UniformGetters.cpp',
         'moderngl/src/UniformSetters.cpp',
         'moderngl/src/VertexArray.cpp',

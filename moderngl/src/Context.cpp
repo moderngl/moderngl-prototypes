@@ -542,6 +542,28 @@ PyObject * MGLContext_release(MGLContext * self) {
 	Py_RETURN_NONE;
 }
 
+PyObject * MGLContext_get_ubo_binding(MGLContext * self, PyObject * args) {
+	int program_obj;
+	int index;
+    if (!PyArg_ParseTuple(args, "II", &program_obj, &index)) {
+        return NULL;
+    }
+	int binding = 0;
+	self->gl.GetActiveUniformBlockiv(program_obj, index, GL_UNIFORM_BLOCK_BINDING, &binding);
+	return PyLong_FromLong(binding);
+}
+
+PyObject * MGLContext_set_ubo_binding(MGLContext * self, PyObject * args) {
+	int program_obj;
+	int index;
+	int binding;
+    if (!PyArg_ParseTuple(args, "III", &program_obj, &index, &binding)) {
+        return NULL;
+    }
+	self->gl.UniformBlockBinding(program_obj, index, binding);
+	Py_RETURN_NONE;
+}
+
 PyMethodDef MGLContext_tp_methods[] = {
 	{"enable_only", (PyCFunction)MGLContext_enable_only, METH_VARARGS, 0},
 	{"enable", (PyCFunction)MGLContext_enable, METH_VARARGS, 0},
@@ -575,6 +597,9 @@ PyMethodDef MGLContext_tp_methods[] = {
 	{"__enter__", (PyCFunction)MGLContext_enter, METH_NOARGS, 0},
 	{"__exit__", (PyCFunction)MGLContext_exit, METH_VARARGS, 0},
 	{"release", (PyCFunction)MGLContext_release, METH_NOARGS, 0},
+
+	{"_get_ubo_binding", (PyCFunction)MGLContext_get_ubo_binding, METH_VARARGS, 0},
+	{"_set_ubo_binding", (PyCFunction)MGLContext_set_ubo_binding, METH_VARARGS, 0},
 	{0},
 };
 

@@ -164,6 +164,58 @@ class Attribute:
         return self._name
 
 
+class UniformBlock:
+    """Uniform Block metadata."""
+
+    def __init__(self):
+        self._program_obj = None
+        self._index = None
+        self._size = None
+        self._name = None
+        self._ctx = None
+        self.extra = None  #: Any - Attribute for storing user defined objects
+
+    def __repr__(self):
+        return '<UniformBlock: %d>' % self._index
+
+    @property
+    def mglo(self):
+        return self
+
+    @property
+    def binding(self) -> int:
+        """int: The binding of the uniform block."""
+        return self._ctx._get_ubo_binding(self._program_obj, self._index)
+
+    @binding.setter
+    def binding(self, binding: int) -> None:
+        self._ctx._set_ubo_binding(self._program_obj, self._index, binding)
+
+    @property
+    def value(self) -> int:
+        """int: The value of the uniform block."""
+        return self._ctx._get_ubo_binding(self._program_obj, self._index)
+
+    @value.setter
+    def value(self, value: int) -> None:
+        self._ctx._set_ubo_binding(self._program_obj, self._index, value)
+
+    @property
+    def name(self) -> str:
+        """str: The name of the uniform block."""
+        return self._name
+
+    @property
+    def index(self) -> int:
+        """int: The index of the uniform block."""
+        return self._index
+
+    @property
+    def size(self) -> int:
+        """int: The size of the uniform block."""
+        return self._size
+
+
 class Error(Exception):
     """Generic moderngl error."""
     pass
@@ -223,4 +275,14 @@ def make_attribute(name, gl_type, program_obj, location, array_length):
     res._dimension = dimension
     res._shape = shape
     res._name = name
+    return res
+
+
+def make_uniform_block(name, program_obj, index, size, ctx):
+    res = UniformBlock()
+    res._name = name
+    res._program_obj = program_obj
+    res._index = index
+    res._size = size
+    res._ctx = ctx
     return res

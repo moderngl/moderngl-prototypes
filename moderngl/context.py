@@ -1574,9 +1574,7 @@ class Context:
             members[obj.name] = obj
 
         for item in ls4:
-            obj = UniformBlock.__new__(UniformBlock)
-            obj.mglo, obj._index, obj._size, obj._name = item
-            members[obj.name] = obj
+            members[item.name] = item
 
         for item in ls5:
             obj = Subroutine.__new__(Subroutine)

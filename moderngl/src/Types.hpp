@@ -44,7 +44,6 @@ struct MGLTexture3D;
 struct MGLTextureArray;
 struct MGLTextureCube;
 struct MGLUniform;
-struct MGLUniformBlock;
 struct MGLVertexArray;
 struct MGLSampler;
 
@@ -368,19 +367,6 @@ struct MGLUniform {
     bool released;
 };
 
-struct MGLUniformBlock {
-	PyObject_HEAD
-
-	const GLMethods * gl;
-
-	int program_obj;
-
-	int index;
-	int size;
-
-    bool released;
-};
-
 struct MGLVertexArray {
 	PyObject_HEAD
 
@@ -443,7 +429,6 @@ void MGLSampler_Invalidate(MGLSampler * sampler);
 void MGLScope_Invalidate(MGLScope * scope);
 
 void MGLUniform_Complete(MGLUniform * self, const GLMethods & gl);
-void MGLUniformBlock_Complete(MGLUniformBlock * uniform_block, const GLMethods & gl);
 void MGLVertexArray_Complete(MGLVertexArray * vertex_array);
 
 void MGLContext_Initialize(MGLContext * self);
@@ -460,7 +445,6 @@ extern PyTypeObject MGLTexture3D_Type;
 extern PyTypeObject MGLTextureCube_Type;
 extern PyTypeObject MGLTexture_Type;
 extern PyTypeObject MGLTextureArray_Type;
-extern PyTypeObject MGLUniformBlock_Type;
 extern PyTypeObject MGLUniform_Type;
 extern PyTypeObject MGLVertexArray_Type;
 extern PyTypeObject MGLSampler_Type;

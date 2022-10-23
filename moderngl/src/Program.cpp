@@ -531,19 +531,10 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
 
 		clean_glsl_name(name, name_len);
 
-		MGLUniformBlock * mglo = (MGLUniformBlock *)MGLUniformBlock_Type.tp_alloc(&MGLUniformBlock_Type, 0);
-        mglo->released = false;
-
-		mglo->index = index;
-		mglo->size = size;
-		mglo->program_obj = program->program_obj;
-		mglo->gl = &gl;
-
-		PyObject * item = PyTuple_New(4);
-		PyTuple_SET_ITEM(item, 0, (PyObject *)mglo);
-		PyTuple_SET_ITEM(item, 1, PyLong_FromLong(index));
-		PyTuple_SET_ITEM(item, 2, PyLong_FromLong(size));
-		PyTuple_SET_ITEM(item, 3, PyUnicode_FromStringAndSize(name, name_len));
+        PyObject * item = PyObject_CallMethod(
+            helper, "make_uniform_block", "(siiiO)",
+            name, program->program_obj, index, size, self
+        );
 
 		PyTuple_SET_ITEM(uniform_blocks_lst, i, item);
 	}
