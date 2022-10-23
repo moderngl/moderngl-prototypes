@@ -172,6 +172,7 @@ setup(
     classifiers=classifiers,
     keywords=keywords,
     packages=['moderngl', 'moderngl.program_members'],
+    py_modules=['_moderngl'],
     ext_modules=[mgl],
     platforms=['any'],
     install_requires=['glcontext>=2.3.6,<3'],
