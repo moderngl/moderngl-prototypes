@@ -10,7 +10,7 @@ void MGLError_SetTrace(const char * filename, const char * function, int line, c
 	// to show both exceptions to the user.)
 	PyErr_Clear();
 
-	PyObject * moderngl = PyImport_ImportModule("moderngl");
+	PyObject * moderngl = PyImport_ImportModule("_moderngl");
 	if (!moderngl) {
 		return;
 	}
