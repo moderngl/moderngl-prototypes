@@ -4,8 +4,6 @@ __all__ = ['Subroutine']
 class Subroutine:
     """This class represents a program subroutine."""
 
-    __slots__ = ['_index', '_name', 'extra']
-
     def __init__(self):
         self._index = None
         self._name = None

@@ -4,8 +4,6 @@ __all__ = ['Varying']
 class Varying:
     """This class represents a program varying."""
 
-    __slots__ = ['_number', '_array_length', '_dimension', '_name', 'extra']
-
     def __init__(self):
         self._number = None
         self._array_length = None

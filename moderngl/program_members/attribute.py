@@ -6,8 +6,6 @@ __all__ = ['Attribute']
 class Attribute:
     """This class represents a program attribute."""
 
-    __slots__ = ['mglo', '_location', '_array_length', '_dimension', '_shape', '_name', 'extra']
-
     def __init__(self):
         self.mglo = None   #: Internal representation for debug purposes only.
         self._location: int = None
