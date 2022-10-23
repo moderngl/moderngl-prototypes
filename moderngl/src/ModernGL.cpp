@@ -459,17 +459,6 @@ bool MGL_InitializeModule(PyObject * module) {
 	}
 
 	{
-		if (PyType_Ready(&MGLUniform_Type) < 0) {
-			PyErr_Format(PyExc_ImportError, "Cannot register Uniform in %s (%s:%d)", __FUNCTION__, __FILE__, __LINE__);
-			return false;
-		}
-
-		Py_INCREF(&MGLUniform_Type);
-
-		PyModule_AddObject(module, "Uniform", (PyObject *)&MGLUniform_Type);
-	}
-
-	{
 		if (PyType_Ready(&MGLVertexArray_Type) < 0) {
 			PyErr_Format(PyExc_ImportError, "Cannot register VertexArray in %s (%s:%d)", __FUNCTION__, __FILE__, __LINE__);
 			return false;

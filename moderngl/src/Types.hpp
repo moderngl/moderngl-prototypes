@@ -43,7 +43,6 @@ struct MGLTexture;
 struct MGLTexture3D;
 struct MGLTextureArray;
 struct MGLTextureCube;
-struct MGLUniform;
 struct MGLVertexArray;
 struct MGLSampler;
 
@@ -344,29 +343,6 @@ struct MGLTextureCube {
     bool released;
 };
 
-struct MGLUniform {
-	PyObject_HEAD
-
-	MGLProc value_getter;
-	MGLProc value_setter;
-	MGLProc gl_value_reader_proc;
-	MGLProc gl_value_writer_proc;
-
-	int program_obj;
-
-	int number;
-	int location;
-	int type;
-
-	int dimension;
-	int element_size;
-	int array_length;
-
-	bool matrix;
-
-    bool released;
-};
-
 struct MGLVertexArray {
 	PyObject_HEAD
 
@@ -423,12 +399,10 @@ void MGLTexture3D_Invalidate(MGLTexture3D * texture);
 void MGLTextureCube_Invalidate(MGLTextureCube * texture);
 void MGLTexture_Invalidate(MGLTexture * texture);
 void MGLTextureArray_Invalidate(MGLTextureArray * texture);
-void MGLUniform_Invalidate(MGLUniform * uniform);
 void MGLVertexArray_Invalidate(MGLVertexArray * vertex_array);
 void MGLSampler_Invalidate(MGLSampler * sampler);
 void MGLScope_Invalidate(MGLScope * scope);
 
-void MGLUniform_Complete(MGLUniform * self, const GLMethods & gl);
 void MGLVertexArray_Complete(MGLVertexArray * vertex_array);
 
 void MGLContext_Initialize(MGLContext * self);
@@ -445,7 +419,6 @@ extern PyTypeObject MGLTexture3D_Type;
 extern PyTypeObject MGLTextureCube_Type;
 extern PyTypeObject MGLTexture_Type;
 extern PyTypeObject MGLTextureArray_Type;
-extern PyTypeObject MGLUniform_Type;
 extern PyTypeObject MGLVertexArray_Type;
 extern PyTypeObject MGLSampler_Type;
 

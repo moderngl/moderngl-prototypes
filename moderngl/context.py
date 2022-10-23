@@ -1567,9 +1567,7 @@ class Context:
             members[item.name] = item
 
         for item in ls3:
-            obj = Uniform.__new__(Uniform)
-            obj.mglo, obj._location, obj._array_length, obj._dimension, obj._name = item
-            members[obj.name] = obj
+            members[item.name] = item
 
         for item in ls4:
             members[item.name] = item
@@ -1802,14 +1800,10 @@ class Context:
         members = {}
 
         for item in ls1:
-            obj = Uniform.__new__(Uniform)
-            obj.mglo, obj._location, obj._array_length, obj._dimension, obj._name = item
-            members[obj.name] = obj
+            members[item.name] = item
 
         for item in ls2:
-            obj = UniformBlock.__new__(UniformBlock)
-            obj.mglo, obj._index, obj._size, obj._name = item
-            members[obj.name] = obj
+            members[item.name] = item
 
         res._members = members
         res.ctx = self

@@ -564,6 +564,180 @@ PyObject * MGLContext_set_ubo_binding(MGLContext * self, PyObject * args) {
 	Py_RETURN_NONE;
 }
 
+char uniform_value[65536];
+
+PyObject * MGLContext_read_uniform(MGLContext * self, PyObject * args) {
+    int program_obj;
+    int location;
+    int gl_type;
+    int array_length;
+    int element_size;
+
+    if (!PyArg_ParseTuple(args, "IIIII", &program_obj, &location, &gl_type, &array_length, &element_size)) {
+        return NULL;
+    }
+
+    int size = array_length * element_size;
+    PyObject * res = PyBytes_FromStringAndSize(NULL, size);
+    char * ptr = PyBytes_AsString(res);
+
+    const GLMethods & gl = self->gl;
+
+    for (int i = 0; i < array_length; ++i) {
+        switch (gl_type) {
+            case GL_BOOL: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_BOOL_VEC2: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_BOOL_VEC3: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_BOOL_VEC4: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_INT: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_INT_VEC2: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_INT_VEC3: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_INT_VEC4: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_UNSIGNED_INT: gl.GetUniformuiv(program_obj, location + i, (unsigned *)(ptr + i * element_size)); break;
+            case GL_UNSIGNED_INT_VEC2: gl.GetUniformuiv(program_obj, location + i, (unsigned *)(ptr + i * element_size)); break;
+            case GL_UNSIGNED_INT_VEC3: gl.GetUniformuiv(program_obj, location + i, (unsigned *)(ptr + i * element_size)); break;
+            case GL_UNSIGNED_INT_VEC4: gl.GetUniformuiv(program_obj, location + i, (unsigned *)(ptr + i * element_size)); break;
+            case GL_FLOAT: gl.GetUniformfv(program_obj, location + i, (float *)(ptr + i * element_size)); break;
+            case GL_FLOAT_VEC2: gl.GetUniformfv(program_obj, location + i, (float *)(ptr + i * element_size)); break;
+            case GL_FLOAT_VEC3: gl.GetUniformfv(program_obj, location + i, (float *)(ptr + i * element_size)); break;
+            case GL_FLOAT_VEC4: gl.GetUniformfv(program_obj, location + i, (float *)(ptr + i * element_size)); break;
+            case GL_DOUBLE: gl.GetUniformdv(program_obj, location + i, (double *)(ptr + i * element_size)); break;
+            case GL_DOUBLE_VEC2: gl.GetUniformdv(program_obj, location + i, (double *)(ptr + i * element_size)); break;
+            case GL_DOUBLE_VEC3: gl.GetUniformdv(program_obj, location + i, (double *)(ptr + i * element_size)); break;
+            case GL_DOUBLE_VEC4: gl.GetUniformdv(program_obj, location + i, (double *)(ptr + i * element_size)); break;
+            case GL_SAMPLER_1D: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_SAMPLER_1D_ARRAY: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_INT_SAMPLER_1D: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_INT_SAMPLER_1D_ARRAY: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_SAMPLER_2D: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_INT_SAMPLER_2D: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_UNSIGNED_INT_SAMPLER_2D: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_SAMPLER_2D_ARRAY: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_INT_SAMPLER_2D_ARRAY: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_SAMPLER_3D: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_INT_SAMPLER_3D: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_UNSIGNED_INT_SAMPLER_3D: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_SAMPLER_2D_SHADOW: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_SAMPLER_2D_MULTISAMPLE: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_INT_SAMPLER_2D_MULTISAMPLE: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_SAMPLER_2D_MULTISAMPLE_ARRAY: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_SAMPLER_CUBE: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_INT_SAMPLER_CUBE: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_UNSIGNED_INT_SAMPLER_CUBE: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_IMAGE_2D: gl.GetUniformiv(program_obj, location + i, (int *)(ptr + i * element_size)); break;
+            case GL_FLOAT_MAT2: gl.GetUniformfv(program_obj, location + i, (float *)(ptr + i * element_size)); break;
+            case GL_FLOAT_MAT2x3: gl.GetUniformfv(program_obj, location + i, (float *)(ptr + i * element_size)); break;
+            case GL_FLOAT_MAT2x4: gl.GetUniformfv(program_obj, location + i, (float *)(ptr + i * element_size)); break;
+            case GL_FLOAT_MAT3x2: gl.GetUniformfv(program_obj, location + i, (float *)(ptr + i * element_size)); break;
+            case GL_FLOAT_MAT3: gl.GetUniformfv(program_obj, location + i, (float *)(ptr + i * element_size)); break;
+            case GL_FLOAT_MAT3x4: gl.GetUniformfv(program_obj, location + i, (float *)(ptr + i * element_size)); break;
+            case GL_FLOAT_MAT4x2: gl.GetUniformfv(program_obj, location + i, (float *)(ptr + i * element_size)); break;
+            case GL_FLOAT_MAT4x3: gl.GetUniformfv(program_obj, location + i, (float *)(ptr + i * element_size)); break;
+            case GL_FLOAT_MAT4: gl.GetUniformfv(program_obj, location + i, (float *)(ptr + i * element_size)); break;
+            case GL_DOUBLE_MAT2: gl.GetUniformdv(program_obj, location + i, (double *)(ptr + i * element_size)); break;
+            case GL_DOUBLE_MAT2x3: gl.GetUniformdv(program_obj, location + i, (double *)(ptr + i * element_size)); break;
+            case GL_DOUBLE_MAT2x4: gl.GetUniformdv(program_obj, location + i, (double *)(ptr + i * element_size)); break;
+            case GL_DOUBLE_MAT3x2: gl.GetUniformdv(program_obj, location + i, (double *)(ptr + i * element_size)); break;
+            case GL_DOUBLE_MAT3: gl.GetUniformdv(program_obj, location + i, (double *)(ptr + i * element_size)); break;
+            case GL_DOUBLE_MAT3x4: gl.GetUniformdv(program_obj, location + i, (double *)(ptr + i * element_size)); break;
+            case GL_DOUBLE_MAT4x2: gl.GetUniformdv(program_obj, location + i, (double *)(ptr + i * element_size)); break;
+            case GL_DOUBLE_MAT4x3: gl.GetUniformdv(program_obj, location + i, (double *)(ptr + i * element_size)); break;
+            case GL_DOUBLE_MAT4: gl.GetUniformdv(program_obj, location + i, (double *)(ptr + i * element_size)); break;
+        }
+    }
+
+    return res;
+}
+
+PyObject * MGLContext_write_uniform(MGLContext * self, PyObject * args) {
+    int program_obj;
+    int location;
+    int gl_type;
+    int array_length;
+    Py_buffer view = {};
+
+    if (!PyArg_ParseTuple(args, "IIIIy*", &program_obj, &location, &gl_type, &array_length, &view)) {
+        return NULL;
+    }
+
+    const GLMethods & gl = self->gl;
+    char * ptr = (char *)view.buf;
+
+    gl.UseProgram(program_obj);
+
+    switch (gl_type) {
+        case GL_BOOL: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_BOOL_VEC2: gl.Uniform2iv(location, array_length, (int *)ptr); break;
+        case GL_BOOL_VEC3: gl.Uniform3iv(location, array_length, (int *)ptr); break;
+        case GL_BOOL_VEC4: gl.Uniform4iv(location, array_length, (int *)ptr); break;
+        case GL_INT: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_INT_VEC2: gl.Uniform2iv(location, array_length, (int *)ptr); break;
+        case GL_INT_VEC3: gl.Uniform3iv(location, array_length, (int *)ptr); break;
+        case GL_INT_VEC4: gl.Uniform4iv(location, array_length, (int *)ptr); break;
+        case GL_UNSIGNED_INT: gl.Uniform1uiv(location, array_length, (unsigned *)ptr); break;
+        case GL_UNSIGNED_INT_VEC2: gl.Uniform2uiv(location, array_length, (unsigned *)ptr); break;
+        case GL_UNSIGNED_INT_VEC3: gl.Uniform3uiv(location, array_length, (unsigned *)ptr); break;
+        case GL_UNSIGNED_INT_VEC4: gl.Uniform4uiv(location, array_length, (unsigned *)ptr); break;
+        case GL_FLOAT: gl.Uniform1fv(location, array_length, (float *)ptr); break;
+        case GL_FLOAT_VEC2: gl.Uniform2fv(location, array_length, (float *)ptr); break;
+        case GL_FLOAT_VEC3: gl.Uniform3fv(location, array_length, (float *)ptr); break;
+        case GL_FLOAT_VEC4: gl.Uniform4fv(location, array_length, (float *)ptr); break;
+        case GL_DOUBLE: gl.Uniform1dv(location, array_length, (double *)ptr); break;
+        case GL_DOUBLE_VEC2: gl.Uniform2dv(location, array_length, (double *)ptr); break;
+        case GL_DOUBLE_VEC3: gl.Uniform3dv(location, array_length, (double *)ptr); break;
+        case GL_DOUBLE_VEC4: gl.Uniform4dv(location, array_length, (double *)ptr); break;
+        case GL_SAMPLER_1D: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_SAMPLER_1D_ARRAY: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_INT_SAMPLER_1D: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_INT_SAMPLER_1D_ARRAY: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_SAMPLER_2D: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_INT_SAMPLER_2D: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_UNSIGNED_INT_SAMPLER_2D: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_SAMPLER_2D_ARRAY: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_INT_SAMPLER_2D_ARRAY: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_SAMPLER_3D: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_INT_SAMPLER_3D: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_UNSIGNED_INT_SAMPLER_3D: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_SAMPLER_2D_SHADOW: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_SAMPLER_2D_MULTISAMPLE: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_INT_SAMPLER_2D_MULTISAMPLE: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_SAMPLER_2D_MULTISAMPLE_ARRAY: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_SAMPLER_CUBE: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_INT_SAMPLER_CUBE: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_UNSIGNED_INT_SAMPLER_CUBE: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_IMAGE_2D: gl.Uniform1iv(location, array_length, (int *)ptr); break;
+        case GL_FLOAT_MAT2: gl.UniformMatrix2fv(location, array_length, false, (float *)ptr); break;
+        case GL_FLOAT_MAT2x3: gl.UniformMatrix2x3fv(location, array_length, false, (float *)ptr); break;
+        case GL_FLOAT_MAT2x4: gl.UniformMatrix2x4fv(location, array_length, false, (float *)ptr); break;
+        case GL_FLOAT_MAT3x2: gl.UniformMatrix3x2fv(location, array_length, false, (float *)ptr); break;
+        case GL_FLOAT_MAT3: gl.UniformMatrix3fv(location, array_length, false, (float *)ptr); break;
+        case GL_FLOAT_MAT3x4: gl.UniformMatrix3x4fv(location, array_length, false, (float *)ptr); break;
+        case GL_FLOAT_MAT4x2: gl.UniformMatrix4x2fv(location, array_length, false, (float *)ptr); break;
+        case GL_FLOAT_MAT4x3: gl.UniformMatrix4x3fv(location, array_length, false, (float *)ptr); break;
+        case GL_FLOAT_MAT4: gl.UniformMatrix4fv(location, array_length, false, (float *)ptr); break;
+        case GL_DOUBLE_MAT2: gl.UniformMatrix2dv(location, array_length, false, (double *)ptr); break;
+        case GL_DOUBLE_MAT2x3: gl.UniformMatrix2x3dv(location, array_length, false, (double *)ptr); break;
+        case GL_DOUBLE_MAT2x4: gl.UniformMatrix2x4dv(location, array_length, false, (double *)ptr); break;
+        case GL_DOUBLE_MAT3x2: gl.UniformMatrix3x2dv(location, array_length, false, (double *)ptr); break;
+        case GL_DOUBLE_MAT3: gl.UniformMatrix3dv(location, array_length, false, (double *)ptr); break;
+        case GL_DOUBLE_MAT3x4: gl.UniformMatrix3x4dv(location, array_length, false, (double *)ptr); break;
+        case GL_DOUBLE_MAT4x2: gl.UniformMatrix4x2dv(location, array_length, false, (double *)ptr); break;
+        case GL_DOUBLE_MAT4x3: gl.UniformMatrix4x3dv(location, array_length, false, (double *)ptr); break;
+        case GL_DOUBLE_MAT4: gl.UniformMatrix4dv(location, array_length, false, (double *)ptr); break;
+    }
+
+    PyBuffer_Release(&view);
+    Py_RETURN_NONE;
+}
+
 PyMethodDef MGLContext_tp_methods[] = {
 	{"enable_only", (PyCFunction)MGLContext_enable_only, METH_VARARGS, 0},
 	{"enable", (PyCFunction)MGLContext_enable, METH_VARARGS, 0},
@@ -600,6 +774,8 @@ PyMethodDef MGLContext_tp_methods[] = {
 
 	{"_get_ubo_binding", (PyCFunction)MGLContext_get_ubo_binding, METH_VARARGS, 0},
 	{"_set_ubo_binding", (PyCFunction)MGLContext_set_ubo_binding, METH_VARARGS, 0},
+	{"_write_uniform", (PyCFunction)MGLContext_write_uniform, METH_VARARGS, 0},
+	{"_read_uniform", (PyCFunction)MGLContext_read_uniform, METH_VARARGS, 0},
 	{0},
 };
 

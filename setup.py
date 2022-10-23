@@ -99,9 +99,6 @@ mgl = Extension(
         'moderngl/src/Texture3D.cpp',
         'moderngl/src/TextureArray.cpp',
         'moderngl/src/TextureCube.cpp',
-        'moderngl/src/Uniform.cpp',
-        'moderngl/src/UniformGetters.cpp',
-        'moderngl/src/UniformSetters.cpp',
         'moderngl/src/VertexArray.cpp',
     ],
     depends=[
