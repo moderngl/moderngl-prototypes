@@ -101,20 +101,12 @@ PyObject * MGLContext_compute_shader(MGLContext * self, PyObject * args) {
 
 	int num_uniforms = 0;
 	int num_uniform_blocks = 0;
-	int num_subroutines = 0;
-	int num_subroutine_uniforms = 0;
 
 	gl.GetProgramiv(program_obj, GL_ACTIVE_UNIFORMS, &num_uniforms);
 	gl.GetProgramiv(program_obj, GL_ACTIVE_UNIFORM_BLOCKS, &num_uniform_blocks);
-	gl.GetProgramStageiv(program_obj, GL_COMPUTE_SHADER, GL_ACTIVE_SUBROUTINES, &num_subroutines);
-	gl.GetProgramStageiv(program_obj, GL_COMPUTE_SHADER, GL_ACTIVE_SUBROUTINE_UNIFORMS, &num_subroutine_uniforms);
 
-	PyObject * uniforms_lst = PyTuple_New(num_uniforms);
-	PyObject * uniform_blocks_lst = PyTuple_New(num_uniform_blocks);
-	PyObject * subroutines_lst = PyTuple_New(num_subroutines);
-	PyObject * subroutine_uniforms_lst = PyTuple_New(num_subroutine_uniforms);
+	PyObject * members_dict = PyDict_New();
 
-	int uniform_counter = 0;
 	for (int i = 0; i < num_uniforms; ++i) {
 		int type = 0;
 		int array_length = 0;
@@ -135,12 +127,8 @@ PyObject * MGLContext_compute_shader(MGLContext * self, PyObject * args) {
             name, type, program_obj, location, array_length, self
         );
 
-		PyTuple_SET_ITEM(uniforms_lst, uniform_counter, item);
-		++uniform_counter;
-	}
-
-	if (uniform_counter != num_uniforms) {
-		_PyTuple_Resize(&uniforms_lst, uniform_counter);
+        PyDict_SetItemString(members_dict, name, item);
+        Py_DECREF(item);
 	}
 
 	for (int i = 0; i < num_uniform_blocks; ++i) {
@@ -159,62 +147,14 @@ PyObject * MGLContext_compute_shader(MGLContext * self, PyObject * args) {
             name, program_obj, index, size, self
         );
 
-		PyTuple_SET_ITEM(uniform_blocks_lst, i, item);
+        PyDict_SetItemString(members_dict, name, item);
+        Py_DECREF(item);
 	}
 
-	int subroutine_uniforms_base = 0;
-	int subroutines_base = 0;
-
-	if (self->version_code >= 400) {
-		const int shader_type[5] = {
-			GL_VERTEX_SHADER,
-			GL_FRAGMENT_SHADER,
-			GL_GEOMETRY_SHADER,
-			GL_TESS_EVALUATION_SHADER,
-			GL_TESS_CONTROL_SHADER,
-		};
-
-		for (int st = 0; st < 5; ++st) {
-			int num_subroutines = 0;
-			gl.GetProgramStageiv(program_obj, shader_type[st], GL_ACTIVE_SUBROUTINES, &num_subroutines);
-
-			int num_subroutine_uniforms = 0;
-			gl.GetProgramStageiv(program_obj, shader_type[st], GL_ACTIVE_SUBROUTINE_UNIFORMS, &num_subroutine_uniforms);
-
-			for (int i = 0; i < num_subroutines; ++i) {
-				int name_len = 0;
-				char name[256];
-
-				gl.GetActiveSubroutineName(program_obj, shader_type[st], i, 256, &name_len, name);
-				int index = gl.GetSubroutineIndex(program_obj, shader_type[st], name);
-
-				PyObject * item = PyTuple_New(2);
-				PyTuple_SET_ITEM(item, 0, PyLong_FromLong(index));
-				PyTuple_SET_ITEM(item, 1, PyUnicode_FromStringAndSize(name, name_len));
-				PyTuple_SET_ITEM(subroutines_lst, subroutines_base + i, item);
-			}
-
-			for (int i = 0; i < num_subroutine_uniforms; ++i) {
-				int name_len = 0;
-				char name[256];
-
-				gl.GetActiveSubroutineUniformName(program_obj, shader_type[st], i, 256, &name_len, name);
-				int location = subroutine_uniforms_base + gl.GetSubroutineUniformLocation(program_obj, shader_type[st], name);
-				PyTuple_SET_ITEM(subroutine_uniforms_lst, location, PyUnicode_FromStringAndSize(name, name_len));
-			}
-
-			subroutine_uniforms_base += num_subroutine_uniforms;
-			subroutines_base += num_subroutines;
-		}
-	}
-
-	PyObject * result = PyTuple_New(6);
+	PyObject * result = PyTuple_New(3);
 	PyTuple_SET_ITEM(result, 0, (PyObject *)compute_shader);
-	PyTuple_SET_ITEM(result, 1, uniforms_lst);
-	PyTuple_SET_ITEM(result, 2, uniform_blocks_lst);
-	PyTuple_SET_ITEM(result, 3, subroutines_lst);
-	PyTuple_SET_ITEM(result, 4, subroutine_uniforms_lst);
-	PyTuple_SET_ITEM(result, 5, PyLong_FromLong(compute_shader->program_obj));
+	PyTuple_SET_ITEM(result, 1, members_dict);
+	PyTuple_SET_ITEM(result, 2, PyLong_FromLong(compute_shader->program_obj));
 	return result;
 }
 

@@ -437,12 +437,8 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
 
 	program->num_varyings = num_varyings;
 
-	PyObject * attributes_lst = PyTuple_New(num_attributes);
-	PyObject * varyings_lst = PyTuple_New(num_varyings);
-	PyObject * uniforms_lst = PyTuple_New(num_uniforms);
-	PyObject * uniform_blocks_lst = PyTuple_New(num_uniform_blocks);
-	PyObject * subroutines_lst = PyTuple_New(num_subroutines);
 	PyObject * subroutine_uniforms_lst = PyTuple_New(num_subroutine_uniforms);
+	PyObject * members_dict = PyDict_New();
 
 	for (int i = 0; i < num_attributes; ++i) {
 		int type = 0;
@@ -460,7 +456,8 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
             name, type, program->program_obj, location, array_length
         );
 
-		PyTuple_SET_ITEM(attributes_lst, i, item);
+        PyDict_SetItemString(members_dict, name, item);
+        Py_DECREF(item);
 	}
 
 	for (int i = 0; i < num_varyings; ++i) {
@@ -473,10 +470,10 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
 		gl.GetTransformFeedbackVarying(program->program_obj, i, 256, &name_len, &array_length, (GLenum *)&type, name);
 
         PyObject * item = PyObject_CallMethod(helper, "make_varying", "(siii)", name, i, array_length, dimension);
-		PyTuple_SET_ITEM(varyings_lst, i, item);
+        PyDict_SetItemString(members_dict, name, item);
+        Py_DECREF(item);
 	}
 
-	int uniform_counter = 0;
 	for (int i = 0; i < num_uniforms; ++i) {
 		int type = 0;
 		int array_length = 0;
@@ -497,11 +494,8 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
             name, type, program->program_obj, location, array_length, self
         );
 
-		PyTuple_SET_ITEM(uniforms_lst, uniform_counter++, item);
-	}
-
-	if (uniform_counter != num_uniforms) {
-		_PyTuple_Resize(&uniforms_lst, uniform_counter);
+        PyDict_SetItemString(members_dict, name, item);
+        Py_DECREF(item);
 	}
 
 	for (int i = 0; i < num_uniform_blocks; ++i) {
@@ -520,7 +514,8 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
             name, program->program_obj, index, size, self
         );
 
-		PyTuple_SET_ITEM(uniform_blocks_lst, i, item);
+        PyDict_SetItemString(members_dict, name, item);
+        Py_DECREF(item);
 	}
 
 	int subroutine_uniforms_base = 0;
@@ -550,7 +545,8 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
 				int index = gl.GetSubroutineIndex(program_obj, shader_type[st], name);
 
                 PyObject * item = PyObject_CallMethod(helper, "make_subroutine", "(si)", name, index);
-				PyTuple_SET_ITEM(subroutines_lst, subroutines_base + i, item);
+                PyDict_SetItemString(members_dict, name, item);
+                Py_DECREF(item);
 			}
 
 			for (int i = 0; i < num_subroutine_uniforms; ++i) {
@@ -582,16 +578,12 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
 	}
 	PyTuple_SET_ITEM(geom_info, 2, PyLong_FromLong(program->geometry_vertices));
 
-	PyObject * result = PyTuple_New(9);
+	PyObject * result = PyTuple_New(5);
 	PyTuple_SET_ITEM(result, 0, (PyObject *)program);
-	PyTuple_SET_ITEM(result, 1, attributes_lst);
-	PyTuple_SET_ITEM(result, 2, varyings_lst);
-	PyTuple_SET_ITEM(result, 3, uniforms_lst);
-	PyTuple_SET_ITEM(result, 4, uniform_blocks_lst);
-	PyTuple_SET_ITEM(result, 5, subroutines_lst);
-	PyTuple_SET_ITEM(result, 6, subroutine_uniforms_lst);
-	PyTuple_SET_ITEM(result, 7, geom_info);
-	PyTuple_SET_ITEM(result, 8, PyLong_FromLong(program->program_obj));
+	PyTuple_SET_ITEM(result, 1, members_dict);
+	PyTuple_SET_ITEM(result, 2, subroutine_uniforms_lst);
+	PyTuple_SET_ITEM(result, 3, geom_info);
+	PyTuple_SET_ITEM(result, 4, PyLong_FromLong(program->program_obj));
 	return result;
 }
 

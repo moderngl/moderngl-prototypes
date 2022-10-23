@@ -1553,29 +1553,11 @@ class Context:
             fragment_outputs = {}
 
         res = Program.__new__(Program)
-        res.mglo, ls1, ls2, ls3, ls4, ls5, res._subroutines, res._geom, res._glo = self.mglo.program(
+        res.mglo, res._members, res._subroutines, res._geom, res._glo = self.mglo.program(
             vertex_shader, fragment_shader, geometry_shader, tess_control_shader, tess_evaluation_shader,
             varyings, fragment_outputs, varyings_capture_mode == 'interleaved'
         )
 
-        members = {}
-
-        for item in ls1:
-            members[item.name] = item
-
-        for item in ls2:
-            members[item.name] = item
-
-        for item in ls3:
-            members[item.name] = item
-
-        for item in ls4:
-            members[item.name] = item
-
-        for item in ls5:
-            members[item.name] = item
-
-        res._members = members
         res._is_transform = fragment_shader is None
         res.ctx = self
         res.extra = None
@@ -1795,17 +1777,8 @@ class Context:
             :py:class:`ComputeShader` object
         """
         res = ComputeShader.__new__(ComputeShader)
-        res.mglo, ls1, ls2, ls3, ls4, res._glo = self.mglo.compute_shader(source)
+        res.mglo, res._members, res._glo = self.mglo.compute_shader(source)
 
-        members = {}
-
-        for item in ls1:
-            members[item.name] = item
-
-        for item in ls2:
-            members[item.name] = item
-
-        res._members = members
         res.ctx = self
         res.extra = None
         return res
