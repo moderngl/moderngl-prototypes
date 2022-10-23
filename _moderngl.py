@@ -262,7 +262,7 @@ ATTRIBUTE_LOOKUP_TABLE = {
 def make_attribute(name, gl_type, program_obj, location, array_length):
     tmp = ATTRIBUTE_LOOKUP_TABLE.get(gl_type, (1, 0, 1, 1, False, '?'))
     dimension, scalar_type, rows_length, row_length, normalizable, shape = tmp
-    row_length *= array_length
+    rows_length *= array_length
     res = Attribute()
     res._type = gl_type
     res._program_obj = program_obj
