@@ -97,6 +97,7 @@ PyObject * MGLContext_texture(MGLContext * self, PyObject * args) {
 	gl.ActiveTexture(GL_TEXTURE0 + self->default_texture_unit);
 
 	MGLTexture * texture = (MGLTexture *)MGLTexture_Type.tp_alloc(&MGLTexture_Type, 0);
+    texture->released = false;
     texture->external = false;
 
 	texture->texture_obj = 0;
@@ -223,6 +224,7 @@ PyObject * MGLContext_depth_texture(MGLContext * self, PyObject * args) {
 	gl.ActiveTexture(GL_TEXTURE0 + self->default_texture_unit);
 
 	MGLTexture * texture = (MGLTexture *)MGLTexture_Type.tp_alloc(&MGLTexture_Type, 0);
+    texture->released = false;
     texture->external = false;
 
 	texture->texture_obj = 0;
@@ -308,6 +310,7 @@ PyObject * MGLContext_external_texture(MGLContext * self, PyObject * args) {
 	}
 
 	MGLTexture * texture = (MGLTexture *)MGLTexture_Type.tp_alloc(&MGLTexture_Type, 0);
+    texture->released = false;
     texture->external = true;
 
 	texture->texture_obj = glo;
@@ -1041,14 +1044,14 @@ PyTypeObject MGLTexture_Type = {
 };
 
 void MGLTexture_Invalidate(MGLTexture * texture) {
-	if (Py_TYPE(texture) == &MGLInvalidObject_Type) {
+	if (texture->released) {
 		return;
 	}
+	texture->released = true;
 
 	const GLMethods & gl = texture->context->gl;
 	gl.DeleteTextures(1, (GLuint *)&texture->texture_obj);
 
 	Py_DECREF(texture->context);
-	Py_SET_TYPE(texture, &MGLInvalidObject_Type);
 	Py_DECREF(texture);
 }

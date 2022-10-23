@@ -36,6 +36,7 @@ PyObject * MGLContext_scope(MGLContext * self, PyObject * args) {
 	}
 
 	MGLScope * scope = (MGLScope *)MGLScope_Type.tp_alloc(&MGLScope_Type, 0);
+    scope->released = false;
 
 	Py_INCREF(self);
 	scope->context = self;
@@ -323,14 +324,14 @@ PyTypeObject MGLScope_Type = {
 };
 
 void MGLScope_Invalidate(MGLScope * scope) {
-	if (Py_TYPE(scope) == &MGLInvalidObject_Type) {
+	if (scope->released) {
 		return;
 	}
+	scope->released = true;
 
 	Py_DECREF(scope->framebuffer);
 	Py_DECREF(scope->old_framebuffer);
 
 	Py_DECREF(scope->context);
-	Py_SET_TYPE(scope, &MGLInvalidObject_Type);
 	Py_DECREF(scope);
 }

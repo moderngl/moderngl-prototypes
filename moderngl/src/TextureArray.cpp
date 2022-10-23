@@ -84,6 +84,7 @@ PyObject * MGLContext_texture_array(MGLContext * self, PyObject * args) {
 	gl.ActiveTexture(GL_TEXTURE0 + self->default_texture_unit);
 
 	MGLTextureArray * texture = (MGLTextureArray *)MGLTextureArray_Type.tp_alloc(&MGLTextureArray_Type, 0);
+    texture->released = false;
 
 	texture->texture_obj = 0;
 	gl.GenTextures(1, (GLuint *)&texture->texture_obj);
@@ -733,9 +734,10 @@ PyTypeObject MGLTextureArray_Type = {
 };
 
 void MGLTextureArray_Invalidate(MGLTextureArray * texture) {
-	if (Py_TYPE(texture) == &MGLInvalidObject_Type) {
+	if (texture->released) {
 		return;
 	}
+	texture->released = true;
 
 	// TODO: decref
 
@@ -743,6 +745,5 @@ void MGLTextureArray_Invalidate(MGLTextureArray * texture) {
 	gl.DeleteTextures(1, (GLuint *)&texture->texture_obj);
 
 	Py_DECREF(texture->context);
-	Py_SET_TYPE(texture, &MGLInvalidObject_Type);
 	Py_DECREF(texture);
 }

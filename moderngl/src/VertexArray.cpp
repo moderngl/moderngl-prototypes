@@ -121,6 +121,7 @@ PyObject * MGLContext_vertex_array(MGLContext * self, PyObject * args) {
 	const GLMethods & gl = self->gl;
 
 	MGLVertexArray * array = (MGLVertexArray *)MGLVertexArray_Type.tp_alloc(&MGLVertexArray_Type, 0);
+    array->released = false;
 
 	array->num_vertices = 0;
 	array->num_instances = 1;
@@ -693,16 +694,16 @@ PyTypeObject MGLVertexArray_Type = {
 };
 
 void MGLVertexArray_Invalidate(MGLVertexArray * array) {
-	if (Py_TYPE(array) == &MGLInvalidObject_Type) {
+	if (array->released) {
 		return;
 	}
+	array->released = true;
 
 	// TODO: decref
 
 	const GLMethods & gl = array->context->gl;
 	gl.DeleteVertexArrays(1, (GLuint *)&array->vertex_array_obj);
 
-	Py_SET_TYPE(array, &MGLInvalidObject_Type);
 	Py_DECREF(array->program);
 	Py_XDECREF(array->index_buffer);
 	Py_DECREF(array);

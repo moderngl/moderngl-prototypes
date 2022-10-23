@@ -55,13 +55,13 @@ PyTypeObject MGLAttribute_Type = {
 };
 
 void MGLAttribute_Invalidate(MGLAttribute * attribute) {
-	if (Py_TYPE(attribute) == &MGLInvalidObject_Type) {
+	if (attribute->released) {
 		return;
 	}
+	attribute->released = true;
 
 	// TODO: decref
 
-	Py_SET_TYPE(attribute, &MGLInvalidObject_Type);
 	Py_DECREF(attribute);
 }
 

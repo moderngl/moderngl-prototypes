@@ -49,6 +49,7 @@ PyObject * MGLContext_buffer(MGLContext * self, PyObject * args) {
 	}
 
 	MGLBuffer * buffer = (MGLBuffer *)MGLBuffer_Type.tp_alloc(&MGLBuffer_Type, 0);
+    buffer->released = false;
 
 	buffer->size = (int)buffer_view.len;
 	buffer->dynamic = dynamic ? true : false;
@@ -660,14 +661,14 @@ PyTypeObject MGLBuffer_Type = {
 };
 
 void MGLBuffer_Invalidate(MGLBuffer * buffer) {
-	if (Py_TYPE(buffer) == &MGLInvalidObject_Type) {
+	if (buffer->released) {
 		return;
 	}
+	buffer->released = true;
 
 	const GLMethods & gl = buffer->context->gl;
 	gl.DeleteBuffers(1, (GLuint *)&buffer->buffer_obj);
 
-	Py_SET_TYPE(buffer, &MGLInvalidObject_Type);
 	Py_DECREF(buffer->context);
 	Py_DECREF(buffer);
 }

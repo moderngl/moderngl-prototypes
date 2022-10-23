@@ -1,7 +1,5 @@
 from typing import Any, Optional, Tuple, Union
 
-from moderngl.mgl import InvalidObject  # type: ignore
-
 from .buffer import Buffer
 
 __all__ = ['Texture3D']
@@ -353,5 +351,6 @@ class Texture3D:
 
     def release(self) -> None:
         """Release the ModernGL object."""
-        if not isinstance(self.mglo, InvalidObject):
+        if self.mglo is not None:
             self.mglo.release()
+            self.mglo = None

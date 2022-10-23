@@ -36,6 +36,7 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
 	}
 
 	MGLProgram * program = (MGLProgram *)MGLProgram_Type.tp_alloc(&MGLProgram_Type, 0);
+    program->released = false;
 
 	Py_INCREF(self);
 	program->context = self;
@@ -455,6 +456,7 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
 		clean_glsl_name(name, name_len);
 
 		MGLAttribute * mglo = (MGLAttribute *)MGLAttribute_Type.tp_alloc(&MGLAttribute_Type, 0);
+        mglo->released = false;
 		mglo->type = type;
 		mglo->location = location;
 		mglo->array_length = array_length;
@@ -507,6 +509,7 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
 		}
 
 		MGLUniform * mglo = (MGLUniform *)MGLUniform_Type.tp_alloc(&MGLUniform_Type, 0);
+        mglo->released = false;
 		mglo->type = type;
 		mglo->location = location;
 		mglo->array_length = array_length;
@@ -540,6 +543,7 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
 		clean_glsl_name(name, name_len);
 
 		MGLUniformBlock * mglo = (MGLUniformBlock *)MGLUniformBlock_Type.tp_alloc(&MGLUniformBlock_Type, 0);
+        mglo->released = false;
 
 		mglo->index = index;
 		mglo->size = size;
@@ -694,13 +698,13 @@ PyTypeObject MGLProgram_Type = {
 };
 
 void MGLProgram_Invalidate(MGLProgram * program) {
-	if (Py_TYPE(program) == &MGLInvalidObject_Type) {
+	if (program->released) {
 		return;
 	}
+	program->released = true;
 
 	const GLMethods & gl = program->context->gl;
 	gl.DeleteProgram(program->program_obj);
 
-	Py_SET_TYPE(program, &MGLInvalidObject_Type);
 	Py_DECREF(program);
 }

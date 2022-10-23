@@ -23,6 +23,7 @@ PyObject * MGLContext_compute_shader(MGLContext * self, PyObject * args) {
 	const char * source_str = PyUnicode_AsUTF8(source);
 
 	MGLComputeShader * compute_shader = (MGLComputeShader *)MGLComputeShader_Type.tp_alloc(&MGLComputeShader_Type, 0);
+    compute_shader->released = false;
 
 	Py_INCREF(self);
 	compute_shader->context = self;
@@ -130,6 +131,7 @@ PyObject * MGLContext_compute_shader(MGLContext * self, PyObject * args) {
 		}
 
 		MGLUniform * mglo = (MGLUniform *)MGLUniform_Type.tp_alloc(&MGLUniform_Type, 0);
+        mglo->released = false;
 		mglo->type = type;
 		mglo->location = location;
 		mglo->array_length = array_length;
@@ -163,6 +165,7 @@ PyObject * MGLContext_compute_shader(MGLContext * self, PyObject * args) {
 		clean_glsl_name(name, name_len);
 
 		MGLUniformBlock * mglo = (MGLUniformBlock *)MGLUniformBlock_Type.tp_alloc(&MGLUniformBlock_Type, 0);
+        mglo->released = false;
 
 		mglo->index = index;
 		mglo->size = size;
@@ -329,9 +332,10 @@ PyTypeObject MGLComputeShader_Type = {
 };
 
 void MGLComputeShader_Invalidate(MGLComputeShader * compute_shader) {
-	if (Py_TYPE(compute_shader) == &MGLInvalidObject_Type) {
+	if (compute_shader->released) {
 		return;
 	}
+	compute_shader->released = true;
 
 	// TODO: decref
 
@@ -340,6 +344,5 @@ void MGLComputeShader_Invalidate(MGLComputeShader * compute_shader) {
 	gl.DeleteProgram(compute_shader->program_obj);
 
 	Py_DECREF(compute_shader->context);
-	Py_SET_TYPE(compute_shader, &MGLInvalidObject_Type);
 	Py_DECREF(compute_shader);
 }

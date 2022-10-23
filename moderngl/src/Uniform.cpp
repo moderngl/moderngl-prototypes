@@ -103,13 +103,13 @@ PyTypeObject MGLUniform_Type = {
 };
 
 void MGLUniform_Invalidate(MGLUniform * uniform) {
-	if (Py_TYPE(uniform) == &MGLInvalidObject_Type) {
+	if (uniform->released) {
 		return;
 	}
+	uniform->released = true;
 
 	// TODO: decref
 
-	Py_SET_TYPE(uniform, &MGLInvalidObject_Type);
 	Py_DECREF(uniform);
 }
 

@@ -48,6 +48,7 @@ PyObject * MGLContext_renderbuffer(MGLContext * self, PyObject * args) {
 	const GLMethods & gl = self->gl;
 
 	MGLRenderbuffer * renderbuffer = (MGLRenderbuffer *)MGLRenderbuffer_Type.tp_alloc(&MGLRenderbuffer_Type, 0);
+    renderbuffer->released = false;
 
 	renderbuffer->renderbuffer_obj = 0;
 	gl.GenRenderbuffers(1, (GLuint *)&renderbuffer->renderbuffer_obj);
@@ -110,6 +111,7 @@ PyObject * MGLContext_depth_renderbuffer(MGLContext * self, PyObject * args) {
 	const GLMethods & gl = self->gl;
 
 	MGLRenderbuffer * renderbuffer = (MGLRenderbuffer *)MGLRenderbuffer_Type.tp_alloc(&MGLRenderbuffer_Type, 0);
+    renderbuffer->released = false;
 
 	renderbuffer->renderbuffer_obj = 0;
 	gl.GenRenderbuffers(1, (GLuint *)&renderbuffer->renderbuffer_obj);
@@ -211,15 +213,15 @@ PyTypeObject MGLRenderbuffer_Type = {
 };
 
 void MGLRenderbuffer_Invalidate(MGLRenderbuffer * renderbuffer) {
-	if (Py_TYPE(renderbuffer) == &MGLInvalidObject_Type) {
+	if (renderbuffer->released) {
 		return;
 	}
+	renderbuffer->released = true;
 
 	// TODO: decref
 
 	const GLMethods & gl = renderbuffer->context->gl;
 	gl.DeleteRenderbuffers(1, (GLuint *)&renderbuffer->renderbuffer_obj);
 
-	Py_SET_TYPE(renderbuffer, &MGLInvalidObject_Type);
 	Py_DECREF(renderbuffer);
 }

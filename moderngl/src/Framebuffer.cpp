@@ -150,6 +150,7 @@ PyObject * MGLContext_framebuffer(MGLContext * self, PyObject * args) {
 	}
 
 	MGLFramebuffer * framebuffer = (MGLFramebuffer *)MGLFramebuffer_Type.tp_alloc(&MGLFramebuffer_Type, 0);
+    framebuffer->released = false;
 
 	framebuffer->framebuffer_obj = 0;
 	gl.GenFramebuffers(1, (GLuint *)&framebuffer->framebuffer_obj);
@@ -1127,9 +1128,10 @@ PyTypeObject MGLFramebuffer_Type = {
 };
 
 void MGLFramebuffer_Invalidate(MGLFramebuffer * framebuffer) {
-	if (Py_TYPE(framebuffer) == &MGLInvalidObject_Type) {
+	if (framebuffer->released) {
 		return;
 	}
+	framebuffer->released = true;
 
 	if (framebuffer->framebuffer_obj) {
 		framebuffer->context->gl.DeleteFramebuffers(1, (GLuint *)&framebuffer->framebuffer_obj);
@@ -1138,6 +1140,5 @@ void MGLFramebuffer_Invalidate(MGLFramebuffer * framebuffer) {
 		delete[] framebuffer->color_mask;
 	}
 
-	Py_SET_TYPE(framebuffer, &MGLInvalidObject_Type);
 	Py_DECREF(framebuffer);
 }

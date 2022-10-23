@@ -125,6 +125,7 @@ PyObject * create_context(PyObject * self, PyObject * args, PyObject * kwargs) {
 	}
 
 	MGLContext * ctx = (MGLContext *)MGLContext_Type.tp_alloc(&MGLContext_Type, 0);
+    ctx->released = false;
 
 	ctx->wireframe = false;
 
@@ -229,6 +230,7 @@ PyObject * create_context(PyObject * self, PyObject * args, PyObject * kwargs) {
 
 	{
 		MGLFramebuffer * framebuffer = (MGLFramebuffer *)MGLFramebuffer_Type.tp_alloc(&MGLFramebuffer_Type, 0);
+        framebuffer->released = false;
 
 		framebuffer->framebuffer_obj = 0;
 
@@ -377,17 +379,6 @@ bool MGL_InitializeModule(PyObject * module) {
 		Py_INCREF(&MGLFramebuffer_Type);
 
 		PyModule_AddObject(module, "Framebuffer", (PyObject *)&MGLFramebuffer_Type);
-	}
-
-	{
-		if (PyType_Ready(&MGLInvalidObject_Type) < 0) {
-			PyErr_Format(PyExc_ImportError, "Cannot register InvalidObject in %s (%s:%d)", __FUNCTION__, __FILE__, __LINE__);
-			return false;
-		}
-
-		Py_INCREF(&MGLInvalidObject_Type);
-
-		PyModule_AddObject(module, "InvalidObject", (PyObject *)&MGLInvalidObject_Type);
 	}
 
 	{

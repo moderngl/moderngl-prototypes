@@ -80,6 +80,6 @@ by checking the type of the internal moderngl object (``.mglo`` property)::
     <class 'mgl.Buffer'>
     >> buffer.release()
     >> type(buffer.mglo)
-    <class 'mgl.InvalidObject'>
-    >> type(buffer.mglo) == moderngl.mgl.InvalidObject
+    <class 'NoneType'>
+    >> buffer.mglo is None
     True

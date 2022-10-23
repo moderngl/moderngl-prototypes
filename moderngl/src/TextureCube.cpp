@@ -82,6 +82,7 @@ PyObject * MGLContext_texture_cube(MGLContext * self, PyObject * args) {
 	const GLMethods & gl = self->gl;
 
 	MGLTextureCube * texture = (MGLTextureCube *)MGLTextureCube_Type.tp_alloc(&MGLTextureCube_Type, 0);
+    texture->released = false;
 
 	texture->texture_obj = 0;
 	gl.GenTextures(1, (GLuint *)&texture->texture_obj);
@@ -652,15 +653,15 @@ PyTypeObject MGLTextureCube_Type = {
 };
 
 void MGLTextureCube_Invalidate(MGLTextureCube * texture) {
-	if (Py_TYPE(texture) == &MGLInvalidObject_Type) {
+	if (texture->released) {
 		return;
 	}
+	texture->released = true;
 
 	// TODO: decref
 
 	const GLMethods & gl = texture->context->gl;
 	gl.DeleteTextures(1, (GLuint *)&texture->texture_obj);
 
-	Py_SET_TYPE(texture, &MGLInvalidObject_Type);
 	Py_DECREF(texture);
 }

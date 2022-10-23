@@ -1,7 +1,5 @@
 from typing import Any, Generator, Tuple, Union
 
-from moderngl.mgl import InvalidObject  # type: ignore
-
 from .program_members import (
     Attribute,
     Subroutine,
@@ -222,8 +220,9 @@ class Program:
 
     def release(self) -> None:
         """Release the ModernGL object."""
-        if not isinstance(self.mglo, InvalidObject):
+        if self.mglo is not None:
             self.mglo.release()
+            self.mglo = None
 
 
 def detect_format(

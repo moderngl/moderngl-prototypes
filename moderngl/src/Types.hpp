@@ -38,7 +38,6 @@ struct MGLBuffer;
 struct MGLComputeShader;
 struct MGLContext;
 struct MGLFramebuffer;
-struct MGLInvalidObject;
 struct MGLProgram;
 struct MGLRenderbuffer;
 struct MGLTexture;
@@ -79,6 +78,8 @@ struct MGLAttribute {
 
 	char shape;
 	bool normalizable;
+
+    bool released;
 };
 
 struct MGLBuffer {
@@ -90,6 +91,8 @@ struct MGLBuffer {
 
 	Py_ssize_t size;
 	bool dynamic;
+
+    bool released;
 };
 
 struct MGLComputeShader {
@@ -99,6 +102,8 @@ struct MGLComputeShader {
 
 	int program_obj;
 	int shader_obj;
+
+    bool released;
 };
 
 struct MGLContext {
@@ -140,6 +145,8 @@ struct MGLContext {
 	float polygon_offset_units;
 
 	GLMethods gl;
+
+    bool released;
 };
 
 struct MGLFramebuffer {
@@ -172,10 +179,8 @@ struct MGLFramebuffer {
 	int samples;
 
 	bool depth_mask;
-};
 
-struct MGLInvalidObject {
-	PyObject_HEAD
+    bool released;
 };
 
 struct MGLProgram {
@@ -196,6 +201,8 @@ struct MGLProgram {
 
 	int geometry_vertices;
 	int num_varyings;
+
+    bool released;
 };
 
 enum MGLQueryKeys {
@@ -211,6 +218,8 @@ struct MGLQuery {
 	MGLContext * context;
 
 	int query_obj[4];
+
+    bool released;
 };
 
 struct MGLRenderbuffer {
@@ -230,6 +239,8 @@ struct MGLRenderbuffer {
 
 	int samples;
 	bool depth;
+
+    bool released;
 };
 
 struct MGLScope {
@@ -248,6 +259,8 @@ struct MGLScope {
 
 	int enable_flags;
 	int old_enable_flags;
+
+    bool released;
 };
 
 struct MGLTexture {
@@ -280,6 +293,8 @@ struct MGLTexture {
 	bool repeat_y;
 
     bool external;
+
+    bool released;
 };
 
 struct MGLTexture3D {
@@ -303,6 +318,8 @@ struct MGLTexture3D {
 	bool repeat_x;
 	bool repeat_y;
 	bool repeat_z;
+
+    bool released;
 };
 
 struct MGLTextureArray {
@@ -328,6 +345,8 @@ struct MGLTextureArray {
 	bool repeat_x;
 	bool repeat_y;
 	float anisotropy;
+
+    bool released;
 };
 
 struct MGLTextureCube {
@@ -348,6 +367,8 @@ struct MGLTextureCube {
 	int mag_filter;
 	int max_level;
 	float anisotropy;
+
+    bool released;
 };
 
 struct MGLUniform {
@@ -369,6 +390,8 @@ struct MGLUniform {
 	int array_length;
 
 	bool matrix;
+
+    bool released;
 };
 
 struct MGLUniformBlock {
@@ -380,6 +403,8 @@ struct MGLUniformBlock {
 
 	int index;
 	int size;
+
+    bool released;
 };
 
 struct MGLVertexArray {
@@ -398,6 +423,8 @@ struct MGLVertexArray {
 	int vertex_array_obj;
 	int num_vertices;
 	int num_instances;
+
+    bool released;
 };
 
 struct MGLSampler {
@@ -420,6 +447,8 @@ struct MGLSampler {
 
 	float min_lod;
 	float max_lod;
+
+    bool released;
 };
 
 MGLDataType * from_dtype(const char * dtype, Py_ssize_t size);
@@ -452,7 +481,6 @@ extern PyTypeObject MGLBuffer_Type;
 extern PyTypeObject MGLComputeShader_Type;
 extern PyTypeObject MGLContext_Type;
 extern PyTypeObject MGLFramebuffer_Type;
-extern PyTypeObject MGLInvalidObject_Type;
 extern PyTypeObject MGLProgram_Type;
 extern PyTypeObject MGLQuery_Type;
 extern PyTypeObject MGLRenderbuffer_Type;

@@ -91,7 +91,6 @@ mgl = Extension(
         'moderngl/src/DataType.cpp',
         'moderngl/src/Error.cpp',
         'moderngl/src/Framebuffer.cpp',
-        'moderngl/src/InvalidObject.cpp',
         'moderngl/src/ModernGL.cpp',
         'moderngl/src/Program.cpp',
         'moderngl/src/Query.cpp',

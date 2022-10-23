@@ -427,6 +427,7 @@ PyObject * MGLContext_detect_framebuffer(MGLContext * self, PyObject * args) {
 	}
 
 	MGLFramebuffer * framebuffer = (MGLFramebuffer *)MGLFramebuffer_Type.tp_alloc(&MGLFramebuffer_Type, 0);
+    framebuffer->released = false;
 
 	framebuffer->framebuffer_obj = framebuffer_obj;
 
@@ -1534,14 +1535,14 @@ PyTypeObject MGLContext_Type = {
 };
 
 void MGLContext_Invalidate(MGLContext * context) {
-	if (Py_TYPE(context) == &MGLInvalidObject_Type) {
+	if (context->released) {
 		return;
 	}
+	context->released = true;
 
 	PyObject_CallMethod(context->ctx, "release", NULL);
 
 	// TODO: decref
 
-	Py_SET_TYPE(context, &MGLInvalidObject_Type);
 	Py_DECREF(context);
 }

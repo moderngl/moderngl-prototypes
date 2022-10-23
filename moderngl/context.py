@@ -2,8 +2,6 @@ import warnings
 from collections import deque
 from typing import Any, Deque, Dict, List, Optional, Set, Tuple, Union
 
-from moderngl.mgl import InvalidObject  # type: ignore
-
 from .buffer import Buffer
 from .compute_shader import ComputeShader
 from .conditional_render import ConditionalRender
@@ -1957,8 +1955,9 @@ class Context:
 
         Standalone contexts can normally be released.
         """
-        if not isinstance(self.mglo, InvalidObject):
+        if self.mglo is not None:
             self.mglo.release()
+            self.mglo = None
 
 
 def create_context(

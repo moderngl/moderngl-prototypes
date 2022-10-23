@@ -30,6 +30,7 @@ PyObject * MGLContext_query(MGLContext * self, PyObject * args) {
 	}
 
 	MGLQuery * query = (MGLQuery *)MGLQuery_Type.tp_alloc(&MGLQuery_Type, 0);
+    query->released = false;
 
 	Py_INCREF(self);
 	query->context = self;
@@ -256,9 +257,10 @@ PyTypeObject MGLQuery_Type = {
 };
 
 void MGLQuery_Invalidate(MGLQuery * query) {
-	if (Py_TYPE(query) == &MGLInvalidObject_Type) {
+	if (query->released) {
 		return;
 	}
+	query->released = true;
 
 	// TODO: decref
 
@@ -267,6 +269,5 @@ void MGLQuery_Invalidate(MGLQuery * query) {
 	// TODO: release
 
 	Py_DECREF(query->context);
-	Py_SET_TYPE(query, &MGLInvalidObject_Type);
 	Py_DECREF(query);
 }

@@ -14,6 +14,7 @@ PyObject * MGLContext_sampler(MGLContext * self, PyObject * args) {
 	const GLMethods & gl = self->gl;
 
 	MGLSampler * sampler = (MGLSampler *)MGLSampler_Type.tp_alloc(&MGLSampler_Type, 0);
+    sampler->released = false;
 
 	gl.GenSamplers(1, (GLuint *)&sampler->sampler_obj);
 
@@ -343,14 +344,14 @@ PyTypeObject MGLSampler_Type = {
 };
 
 void MGLSampler_Invalidate(MGLSampler * sampler) {
-	if (Py_TYPE(sampler) == &MGLInvalidObject_Type) {
+	if (sampler->released) {
 		return;
 	}
+	sampler->released = true;
 
 	const GLMethods & gl = sampler->context->gl;
 	gl.DeleteSamplers(1, (GLuint *)&sampler->sampler_obj);
 
-	Py_SET_TYPE(sampler, &MGLInvalidObject_Type);
 	Py_DECREF(sampler);
 	Py_DECREF(sampler->context);
 }
