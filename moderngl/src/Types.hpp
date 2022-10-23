@@ -1,8 +1,7 @@
 #pragma once
 
-#include "Python.hpp"
+#include <Python.h>
 #include "gl_methods.hpp"
-#include "Error.hpp"
 
 typedef void (* MGLProc)();
 
@@ -423,3 +422,6 @@ extern PyTypeObject MGLVertexArray_Type;
 extern PyTypeObject MGLSampler_Type;
 
 extern PyObject * helper;
+extern PyObject * moderngl_error;
+
+#define MGLError_Set(...) PyErr_Format(moderngl_error, __VA_ARGS__)

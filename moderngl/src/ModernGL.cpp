@@ -1,5 +1,4 @@
 #include "Types.hpp"
-#include "Error.hpp"
 
 #include "BufferFormat.hpp"
 
@@ -496,6 +495,7 @@ PyModuleDef MGL_moduledef = {
 };
 
 PyObject * helper;
+PyObject * moderngl_error;
 
 extern "C" PyObject * PyInit_mgl() {
 	PyObject * module = PyModule_Create(&MGL_moduledef);
@@ -508,6 +508,8 @@ extern "C" PyObject * PyInit_mgl() {
     if (!helper) {
         return NULL;
     }
+
+    moderngl_error = PyObject_GetAttrString(helper, "Error");
 
 	return module;
 }

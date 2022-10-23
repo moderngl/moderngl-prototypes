@@ -77,7 +77,9 @@ extra_linker_args = {
 mgl = Extension(
     name='moderngl.mgl',
     include_dirs=['src', 'moderngl', 'moderngl/mgl'],
-    define_macros=[],
+    define_macros=[
+        ('PY_SSIZE_T_CLEAN', None),
+    ],
     libraries=libraries[target],
     extra_compile_args=extra_compile_args[target],
     extra_link_args=extra_linker_args[target],
@@ -88,7 +90,6 @@ mgl = Extension(
         'moderngl/src/ComputeShader.cpp',
         'moderngl/src/Context.cpp',
         'moderngl/src/DataType.cpp',
-        'moderngl/src/Error.cpp',
         'moderngl/src/Framebuffer.cpp',
         'moderngl/src/ModernGL.cpp',
         'moderngl/src/Program.cpp',
