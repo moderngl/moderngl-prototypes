@@ -592,7 +592,7 @@ def make_attribute(name, gl_type, program_obj, location, array_length):
 
 
 def make_uniform(name, gl_type, program_obj, location, array_length, ctx):
-    tmp = UNIFORM_LOOKUP_TABLE.get(gl_type, (False, 1, 4))
+    tmp = UNIFORM_LOOKUP_TABLE.get(gl_type, (False, 1, 4, '1i'))
     matrix, dimension, element_size, fmt = tmp
     res = Uniform()
     res._name = name
