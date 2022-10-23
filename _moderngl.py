@@ -5,19 +5,19 @@ class Attribute:
     """This class represents a program attribute."""
 
     def __init__(self):
-        self.mglo = None   #: Internal representation for debug purposes only.
         self._location: int = None
-        self._array_length = None
-        self._dimension = None
-        self._shape = None
+        self._array_length: int = None
+        self._dimension: int = None
+        self._shape: int = None
         self._name: str = None
         self.extra: Any = None  #: Attribute for storing user defined objects
 
     def __repr__(self) -> str:
         return '<Attribute: %d>' % self._location
 
-    def __hash__(self) -> int:
-        return id(self)
+    @property
+    def mglo(self):
+        return self
 
     @property
     def location(self) -> int:
