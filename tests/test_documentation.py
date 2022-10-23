@@ -18,7 +18,7 @@ class TestCase(unittest.TestCase):
         attributes = re.findall(r'^\.\. autoattribute:: ([^\n]+)', docs, flags=re.M)
 
         documented = set(filter(lambda x: x.startswith(classname), methods + attributes))
-        implemented = set(classname + '.' + x for x in dir(getattr(moderngl, classname)) if not x.startswith('_'))
+        implemented = set(classname + '.' + x for x in dir(getattr(moderngl, classname)) + ['extra'] if not x.startswith('_'))
 
         include = set('{}.{}'.format(classname, e) for e in include or [])
         ignored = set(classname + '.' + x for x in ignore)
