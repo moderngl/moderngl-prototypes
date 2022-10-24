@@ -672,7 +672,7 @@ def swizzle_from_str(value):
         if c not in SWIZZLE_FROM_CHAR:
             raise Error(f'invalid swizzle character {c}')
 
-    return [SWIZZLE_FROM_CHAR[c] for c in (value + '0000')[:4]]
+    return tuple(SWIZZLE_FROM_CHAR[c] for c in (value + '0000')[:4])
 
 
 def swizzle_to_str(*args):
