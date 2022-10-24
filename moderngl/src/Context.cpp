@@ -3,19 +3,6 @@
 #include "BufferFormat.hpp"
 #include "InlineMethods.hpp"
 
-PyObject * MGLContext_tp_new(PyTypeObject * type, PyObject * args, PyObject * kwargs) {
-	MGLContext * self = (MGLContext *)type->tp_alloc(type, 0);
-
-	if (self) {
-	}
-
-	return (PyObject *)self;
-}
-
-void MGLContext_tp_dealloc(MGLContext * self) {
-	MGLContext_Type.tp_free((PyObject *)self);
-}
-
 PyObject * MGLContext_enable_only(MGLContext * self, PyObject * args) {
 	int flags;
 
@@ -190,9 +177,9 @@ PyObject * MGLContext_copy_buffer(MGLContext * self, PyObject * args) {
 	int args_ok = PyArg_ParseTuple(
 		args,
 		"O!O!nnn",
-		&MGLBuffer_Type,
+		MGLBuffer_type,
 		&dst,
-		&MGLBuffer_Type,
+		MGLBuffer_type,
 		&src,
 		&size,
 		&read_offset,
@@ -234,7 +221,7 @@ PyObject * MGLContext_copy_framebuffer(MGLContext * self, PyObject * args) {
 		args,
 		"OO!",
 		&dst,
-		&MGLFramebuffer_Type,
+		MGLFramebuffer_type,
 		&src
 	);
 
@@ -251,7 +238,7 @@ PyObject * MGLContext_copy_framebuffer(MGLContext * self, PyObject * args) {
 	// GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT, no data is transferred and a
 	// GL_INVALID_OPERATION error is generated.
 
-	if (Py_TYPE(dst) == &MGLFramebuffer_Type) {
+	if (Py_TYPE(dst) == MGLFramebuffer_type) {
 
 		MGLFramebuffer * dst_framebuffer = (MGLFramebuffer *)dst;
 
@@ -301,7 +288,7 @@ PyObject * MGLContext_copy_framebuffer(MGLContext * self, PyObject * args) {
 		gl.DrawBuffer(prev_draw_buffer);
 		gl.DrawBuffers(self->bound_framebuffer->draw_buffers_len, self->bound_framebuffer->draw_buffers);
 
-	} else if (Py_TYPE(dst) == &MGLTexture_Type) {
+	} else if (Py_TYPE(dst) == MGLTexture_type) {
 
 		MGLTexture * dst_texture = (MGLTexture *)dst;
 
@@ -426,7 +413,7 @@ PyObject * MGLContext_detect_framebuffer(MGLContext * self, PyObject * args) {
 		}
 	}
 
-	MGLFramebuffer * framebuffer = (MGLFramebuffer *)MGLFramebuffer_Type.tp_alloc(&MGLFramebuffer_Type, 0);
+    MGLFramebuffer * framebuffer = PyObject_New(MGLFramebuffer, MGLFramebuffer_type);
     framebuffer->released = false;
 
 	framebuffer->framebuffer_obj = framebuffer_obj;
@@ -738,47 +725,6 @@ PyObject * MGLContext_write_uniform(MGLContext * self, PyObject * args) {
     Py_RETURN_NONE;
 }
 
-PyMethodDef MGLContext_tp_methods[] = {
-	{"enable_only", (PyCFunction)MGLContext_enable_only, METH_VARARGS, 0},
-	{"enable", (PyCFunction)MGLContext_enable, METH_VARARGS, 0},
-	{"disable", (PyCFunction)MGLContext_disable, METH_VARARGS, 0},
-	{"enable_direct", (PyCFunction)MGLContext_enable_direct, METH_VARARGS, 0},
-	{"disable_direct", (PyCFunction)MGLContext_disable_direct, METH_VARARGS, 0},
-	{"finish", (PyCFunction)MGLContext_finish, METH_NOARGS, 0},
-	{"copy_buffer", (PyCFunction)MGLContext_copy_buffer, METH_VARARGS, 0},
-	{"copy_framebuffer", (PyCFunction)MGLContext_copy_framebuffer, METH_VARARGS, 0},
-	{"detect_framebuffer", (PyCFunction)MGLContext_detect_framebuffer, METH_VARARGS, 0},
-	{"clear_samplers", (PyCFunction)MGLContext_clear_samplers, METH_VARARGS, 0},
-
-	{"buffer", (PyCFunction)MGLContext_buffer, METH_VARARGS, 0},
-	{"texture", (PyCFunction)MGLContext_texture, METH_VARARGS, 0},
-	{"texture3d", (PyCFunction)MGLContext_texture3d, METH_VARARGS, 0},
-	{"texture_array", (PyCFunction)MGLContext_texture_array, METH_VARARGS, 0},
-	{"texture_cube", (PyCFunction)MGLContext_texture_cube, METH_VARARGS, 0},
-	{"depth_texture", (PyCFunction)MGLContext_depth_texture, METH_VARARGS, 0},
-	{"external_texture", (PyCFunction)MGLContext_external_texture, METH_VARARGS, 0},
-	{"vertex_array", (PyCFunction)MGLContext_vertex_array, METH_VARARGS, 0},
-	{"program", (PyCFunction)MGLContext_program, METH_VARARGS, 0},
-	// {"shader", (PyCFunction)MGLContext_shader, METH_VARARGS, 0},
-	{"framebuffer", (PyCFunction)MGLContext_framebuffer, METH_VARARGS, 0},
-	{"renderbuffer", (PyCFunction)MGLContext_renderbuffer, METH_VARARGS, 0},
-	{"depth_renderbuffer", (PyCFunction)MGLContext_depth_renderbuffer, METH_VARARGS, 0},
-	{"compute_shader", (PyCFunction)MGLContext_compute_shader, METH_VARARGS, 0},
-	{"query", (PyCFunction)MGLContext_query, METH_VARARGS, 0},
-	{"scope", (PyCFunction)MGLContext_scope, METH_VARARGS, 0},
-	{"sampler", (PyCFunction)MGLContext_sampler, METH_VARARGS, 0},
-
-	{"__enter__", (PyCFunction)MGLContext_enter, METH_NOARGS, 0},
-	{"__exit__", (PyCFunction)MGLContext_exit, METH_VARARGS, 0},
-	{"release", (PyCFunction)MGLContext_release, METH_NOARGS, 0},
-
-	{"_get_ubo_binding", (PyCFunction)MGLContext_get_ubo_binding, METH_VARARGS, 0},
-	{"_set_ubo_binding", (PyCFunction)MGLContext_set_ubo_binding, METH_VARARGS, 0},
-	{"_write_uniform", (PyCFunction)MGLContext_write_uniform, METH_VARARGS, 0},
-	{"_read_uniform", (PyCFunction)MGLContext_read_uniform, METH_VARARGS, 0},
-	{0},
-};
-
 PyObject * MGLContext_get_line_width(MGLContext * self) {
 	float line_width = 0.0f;
 
@@ -1006,7 +952,7 @@ MGLFramebuffer * MGLContext_get_fbo(MGLContext * self) {
 }
 
 int MGLContext_set_fbo(MGLContext * self, PyObject * value) {
-	if (Py_TYPE(value) != &MGLFramebuffer_Type) {
+	if (Py_TYPE(value) != MGLFramebuffer_type) {
 		return -1;
 	}
 	Py_INCREF(value);
@@ -1661,79 +1607,6 @@ PyObject * MGLContext_get_info(MGLContext * self, void * closure) {
 
 	return info;
 }
-
-PyGetSetDef MGLContext_tp_getseters[] = {
-	{(char *)"line_width", (getter)MGLContext_get_line_width, (setter)MGLContext_set_line_width, 0, 0},
-	{(char *)"point_size", (getter)MGLContext_get_point_size, (setter)MGLContext_set_point_size, 0, 0},
-
-	{(char *)"depth_func", (getter)MGLContext_get_depth_func, (setter)MGLContext_set_depth_func, 0, 0},
-	{(char *)"blend_func", (getter)MGLContext_get_blend_func, (setter)MGLContext_set_blend_func, 0, 0},
-	{(char *)"blend_equation", (getter)MGLContext_get_blend_equation, (setter)MGLContext_set_blend_equation, 0, 0},
-	{(char *)"multisample", (getter)MGLContext_get_multisample, (setter)MGLContext_set_multisample, 0, 0},
-
-	{(char *)"provoking_vertex", (getter)MGLContext_get_provoking_vertex, (setter)MGLContext_set_provoking_vertex, 0, 0},
-	{(char *)"polygon_offset", (getter)MGLContext_get_polygon_offset, (setter)MGLContext_set_polygon_offset, 0, 0},
-
-	{(char *)"default_texture_unit", (getter)MGLContext_get_default_texture_unit, (setter)MGLContext_set_default_texture_unit, 0, 0},
-	{(char *)"max_samples", (getter)MGLContext_get_max_samples, 0, 0, 0},
-	{(char *)"max_integer_samples", (getter)MGLContext_get_max_integer_samples, 0, 0, 0},
-	{(char *)"max_texture_units", (getter)MGLContext_get_max_texture_units, 0, 0, 0},
-	{(char *)"max_anisotropy", (getter)MGLContext_get_max_anisotropy, 0, 0, 0},
-
-	{(char *)"fbo", (getter)MGLContext_get_fbo, (setter)MGLContext_set_fbo, 0, 0},
-
-	{(char *)"wireframe", (getter)MGLContext_get_wireframe, (setter)MGLContext_set_wireframe, 0, 0},
-	{(char *)"front_face", (getter)MGLContext_get_front_face, (setter)MGLContext_set_front_face, 0, 0},
-	{(char *)"cull_face", (getter)MGLContext_get_cull_face, (setter)MGLContext_set_cull_face, 0, 0},
-
-	{(char *)"patch_vertices", (getter)MGLContext_get_patch_vertices, (setter)MGLContext_set_patch_vertices, 0, 0},
-
-	{(char *)"extensions", (getter)MGLContext_get_extensions, 0, 0, 0},
-	{(char *)"info", (getter)MGLContext_get_info, 0, 0, 0},
-	{(char *)"error", (getter)MGLContext_get_error, 0, 0, 0},
-	{0},
-};
-
-PyTypeObject MGLContext_Type = {
-	PyVarObject_HEAD_INIT(0, 0)
-	"mgl.Context",                                          // tp_name
-	sizeof(MGLContext),                                     // tp_basicsize
-	0,                                                      // tp_itemsize
-	(destructor)MGLContext_tp_dealloc,                      // tp_dealloc
-	0,                                                      // tp_print
-	0,                                                      // tp_getattr
-	0,                                                      // tp_setattr
-	0,                                                      // tp_reserved
-	0,                                                      // tp_repr
-	0,                                                      // tp_as_number
-	0,                                                      // tp_as_sequence
-	0,                                                      // tp_as_mapping
-	0,                                                      // tp_hash
-	0,                                                      // tp_call
-	0,                                                      // tp_str
-	0,                                                      // tp_getattro
-	0,                                                      // tp_setattro
-	0,                                                      // tp_as_buffer
-	Py_TPFLAGS_DEFAULT,                                     // tp_flags
-	0,                                                      // tp_doc
-	0,                                                      // tp_traverse
-	0,                                                      // tp_clear
-	0,                                                      // tp_richcompare
-	0,                                                      // tp_weaklistoffset
-	0,                                                      // tp_iter
-	0,                                                      // tp_iternext
-	MGLContext_tp_methods,                                  // tp_methods
-	0,                                                      // tp_members
-	MGLContext_tp_getseters,                                // tp_getset
-	0,                                                      // tp_base
-	0,                                                      // tp_dict
-	0,                                                      // tp_descr_get
-	0,                                                      // tp_descr_set
-	0,                                                      // tp_dictoffset
-	0,                                                      // tp_init
-	0,                                                      // tp_alloc
-	MGLContext_tp_new,                                      // tp_new
-};
 
 void MGLContext_Invalidate(MGLContext * context) {
 	if (context->released) {

@@ -406,20 +406,20 @@ void MGLVertexArray_Complete(MGLVertexArray * vertex_array);
 
 void MGLContext_Initialize(MGLContext * self);
 
-extern PyTypeObject MGLBuffer_Type;
-extern PyTypeObject MGLComputeShader_Type;
-extern PyTypeObject MGLContext_Type;
-extern PyTypeObject MGLFramebuffer_Type;
-extern PyTypeObject MGLProgram_Type;
-extern PyTypeObject MGLQuery_Type;
-extern PyTypeObject MGLRenderbuffer_Type;
-extern PyTypeObject MGLScope_Type;
-extern PyTypeObject MGLTexture3D_Type;
-extern PyTypeObject MGLTextureCube_Type;
-extern PyTypeObject MGLTexture_Type;
-extern PyTypeObject MGLTextureArray_Type;
-extern PyTypeObject MGLVertexArray_Type;
-extern PyTypeObject MGLSampler_Type;
+extern PyTypeObject * MGLBuffer_type;
+extern PyTypeObject * MGLComputeShader_type;
+extern PyTypeObject * MGLContext_type;
+extern PyTypeObject * MGLFramebuffer_type;
+extern PyTypeObject * MGLProgram_type;
+extern PyTypeObject * MGLQuery_type;
+extern PyTypeObject * MGLRenderbuffer_type;
+extern PyTypeObject * MGLScope_type;
+extern PyTypeObject * MGLTexture3D_type;
+extern PyTypeObject * MGLTextureCube_type;
+extern PyTypeObject * MGLTexture_type;
+extern PyTypeObject * MGLTextureArray_type;
+extern PyTypeObject * MGLVertexArray_type;
+extern PyTypeObject * MGLSampler_type;
 
 extern PyObject * helper;
 extern PyObject * moderngl_error;
