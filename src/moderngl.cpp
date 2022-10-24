@@ -343,16 +343,6 @@ struct FormatIterator {
 
 FormatNode * InvalidFormat = (FormatNode *)(-1);
 
-inline void clean_glsl_name(char * name, int & name_len) {
-    if (name_len && name[name_len - 1] == ']') {
-        name_len -= 1;
-        while (name_len && name[name_len] != '[') {
-            name_len -= 1;
-        }
-    }
-    name[name_len] = 0;
-}
-
 inline int swizzle_from_char(char c) {
     switch (c) {
         case 'R':
@@ -1453,15 +1443,14 @@ PyObject * MGLContext_compute_shader(MGLContext * self, PyObject * args) {
         gl.GetActiveUniform(program_obj, i, 256, &name_len, &array_length, (GLenum *)&type, name);
         int location = gl.GetUniformLocation(program_obj, name);
 
-        clean_glsl_name(name, name_len);
-
         if (location < 0) {
             continue;
         }
 
+        PyObject * clean_name = PyObject_CallMethod(helper, "clean_glsl_name", "s", name);
         PyObject * item = PyObject_CallMethod(
-            helper, "make_uniform", "(siiiiO)",
-            name, type, program_obj, location, array_length, self
+            helper, "make_uniform", "(NiiiiO)",
+            clean_name, type, program_obj, location, array_length, self
         );
 
         PyDict_SetItemString(members_dict, name, item);
@@ -1477,11 +1466,10 @@ PyObject * MGLContext_compute_shader(MGLContext * self, PyObject * args) {
         int index = gl.GetUniformBlockIndex(program_obj, name);
         gl.GetActiveUniformBlockiv(program_obj, index, GL_UNIFORM_BLOCK_DATA_SIZE, &size);
 
-        clean_glsl_name(name, name_len);
-
+        PyObject * clean_name = PyObject_CallMethod(helper, "clean_glsl_name", "s", name);
         PyObject * item = PyObject_CallMethod(
-            helper, "make_uniform_block", "(siiiO)",
-            name, program_obj, index, size, self
+            helper, "make_uniform_block", "(NiiiO)",
+            clean_name, program_obj, index, size, self
         );
 
         PyDict_SetItemString(members_dict, name, item);
@@ -4510,11 +4498,10 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
         gl.GetActiveAttrib(program->program_obj, i, 256, &name_len, &array_length, (GLenum *)&type, name);
         int location = gl.GetAttribLocation(program->program_obj, name);
 
-        clean_glsl_name(name, name_len);
-
+        PyObject * clean_name = PyObject_CallMethod(helper, "clean_glsl_name", "s", name);
         PyObject * item = PyObject_CallMethod(
-            helper, "make_attribute", "(siiii)",
-            name, type, program->program_obj, location, array_length
+            helper, "make_attribute", "(Niiii)",
+            clean_name, type, program->program_obj, location, array_length
         );
 
         PyDict_SetItemString(members_dict, name, item);
@@ -4544,15 +4531,14 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
         gl.GetActiveUniform(program->program_obj, i, 256, &name_len, &array_length, (GLenum *)&type, name);
         int location = gl.GetUniformLocation(program->program_obj, name);
 
-        clean_glsl_name(name, name_len);
-
         if (location < 0) {
             continue;
         }
 
+        PyObject * clean_name = PyObject_CallMethod(helper, "clean_glsl_name", "s", name);
         PyObject * item = PyObject_CallMethod(
-            helper, "make_uniform", "(siiiiO)",
-            name, type, program->program_obj, location, array_length, self
+            helper, "make_uniform", "(NiiiiO)",
+            clean_name, type, program->program_obj, location, array_length, self
         );
 
         PyDict_SetItemString(members_dict, name, item);
@@ -4568,11 +4554,10 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
         int index = gl.GetUniformBlockIndex(program->program_obj, name);
         gl.GetActiveUniformBlockiv(program->program_obj, index, GL_UNIFORM_BLOCK_DATA_SIZE, &size);
 
-        clean_glsl_name(name, name_len);
-
+        PyObject * clean_name = PyObject_CallMethod(helper, "clean_glsl_name", "s", name);
         PyObject * item = PyObject_CallMethod(
-            helper, "make_uniform_block", "(siiiO)",
-            name, program->program_obj, index, size, self
+            helper, "make_uniform_block", "(NiiiO)",
+            clean_name, program->program_obj, index, size, self
         );
 
         PyDict_SetItemString(members_dict, name, item);

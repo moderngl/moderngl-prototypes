@@ -1,3 +1,4 @@
+import re
 import struct
 from typing import Any
 
@@ -631,3 +632,7 @@ def make_varying(name, number, array_length, dimension):
     res._array_length = array_length
     res._dimension = dimension
     return res
+
+
+def clean_glsl_name(name):
+    return re.sub(name, r'\[[^\]]*\]$', '')
