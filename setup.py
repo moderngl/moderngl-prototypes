@@ -59,11 +59,11 @@ libraries = {
 }
 
 extra_compile_args = {
-    'windows': [],
-    'linux': [],
-    'cygwin': [],
+    'windows': ['-fpermissive'],
+    'linux': ['-fpermissive'],
+    'cygwin': ['-fpermissive'],
     'darwin': ['-Wno-deprecated-declarations'],
-    'android': [],
+    'android': ['-fpermissive'],
 }
 
 extra_linker_args = {
