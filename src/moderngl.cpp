@@ -343,151 +343,6 @@ struct FormatIterator {
 
 FormatNode * InvalidFormat = (FormatNode *)(-1);
 
-inline int swizzle_from_char(char c) {
-    switch (c) {
-        case 'R':
-        case 'r':
-            return GL_RED;
-
-        case 'G':
-        case 'g':
-            return GL_GREEN;
-
-        case 'B':
-        case 'b':
-            return GL_BLUE;
-
-        case 'A':
-        case 'a':
-            return GL_ALPHA;
-
-        case '0':
-            return GL_ZERO;
-
-        case '1':
-            return GL_ONE;
-    }
-
-    return -1;
-}
-
-inline char char_from_swizzle(int c) {
-    switch (c) {
-        case GL_RED:
-            return 'R';
-
-        case GL_GREEN:
-            return 'G';
-
-        case GL_BLUE:
-            return 'B';
-
-        case GL_ALPHA:
-            return 'A';
-
-        case GL_ZERO:
-            return '0';
-
-        case GL_ONE:
-            return '1';
-    }
-
-    return '?';
-}
-
-inline int compare_func_from_string(const char * str) {
-    if (!str[0] || (str[1] && str[2])) {
-        return 0;
-    }
-
-    switch (str[0] * 256 + str[1]) {
-        case ('<' * 256 + '='):
-            return GL_LEQUAL;
-
-        case ('<' * 256):
-            return GL_LESS;
-
-        case ('>' * 256 + '='):
-            return GL_GEQUAL;
-
-        case ('>' * 256):
-            return GL_GREATER;
-
-        case ('=' * 256 + '='):
-            return GL_EQUAL;
-
-        case ('!' * 256 + '='):
-            return GL_NOTEQUAL;
-
-        case ('0' * 256):
-            return GL_NEVER;
-
-        case ('1' * 256):
-            return GL_ALWAYS;
-
-        default:
-            return 0;
-    }
-}
-
-inline PyObject * compare_func_to_string(int func) {
-    switch (func) {
-        case GL_LEQUAL: {
-            static PyObject * res_lequal = PyUnicode_FromString("<=");
-            Py_INCREF(res_lequal);
-            return res_lequal;
-        }
-
-        case GL_LESS: {
-            static PyObject * res_less = PyUnicode_FromString("<");
-            Py_INCREF(res_less);
-            return res_less;
-        }
-
-        case GL_GEQUAL: {
-            static PyObject * res_gequal = PyUnicode_FromString(">=");
-            Py_INCREF(res_gequal);
-            return res_gequal;
-        }
-
-        case GL_GREATER: {
-            static PyObject * res_greater = PyUnicode_FromString(">");
-            Py_INCREF(res_greater);
-            return res_greater;
-        }
-
-        case GL_EQUAL: {
-            static PyObject * res_equal = PyUnicode_FromString("==");
-            Py_INCREF(res_equal);
-            return res_equal;
-        }
-
-        case GL_NOTEQUAL: {
-            static PyObject * res_notequal = PyUnicode_FromString("!=");
-            Py_INCREF(res_notequal);
-            return res_notequal;
-        }
-
-        case GL_NEVER: {
-            static PyObject * res_never = PyUnicode_FromString("0");
-            Py_INCREF(res_never);
-            return res_never;
-        }
-
-        case GL_ALWAYS: {
-            static PyObject * res_always = PyUnicode_FromString("1");
-            Py_INCREF(res_always);
-            return res_always;
-        }
-
-        default: {
-            static PyObject * res_unk = PyUnicode_FromString("?");
-            Py_INCREF(res_unk);
-            return res_unk;
-        }
-    }
-}
-
 static int float_base_format[5] = {0, GL_RED, GL_RG, GL_RGB, GL_RGBA};
 static int int_base_format[5] = {0, GL_RED_INTEGER, GL_RG_INTEGER, GL_RGB_INTEGER, GL_RGBA_INTEGER};
 
@@ -2292,25 +2147,22 @@ int MGLContext_set_blend_equation(MGLContext * self, PyObject * value) {
 }
 
 PyObject * MGLContext_get_depth_func(MGLContext * self) {
-    return compare_func_to_string(self->depth_func);
+    return PyObject_CallMethod(helper, "compare_func_to_str", "(i)", self->depth_func);
 }
 
 int MGLContext_set_depth_func(MGLContext * self, PyObject * value) {
-    const char * func = PyUnicode_AsUTF8(value);
-
-    if (PyErr_Occurred()) {
+    PyObject * compare_func = PyObject_CallMethod(helper, "compare_func_from_str", "(O)", value);
+    if (!compare_func) {
         return -1;
     }
 
-    int depth_func = compare_func_from_string(func);
-
+    int depth_func = PyLong_AsLong(compare_func);
     if (!depth_func) {
-        return -1;
+        MGLError_Set("depth_func cannot be set to None");
     }
 
     self->depth_func = depth_func;
     self->gl.DepthFunc(self->depth_func);
-
     return 0;
 }
 
@@ -5092,12 +4944,16 @@ int MGLSampler_set_filter(MGLSampler * self, PyObject * value) {
 }
 
 PyObject * MGLSampler_get_compare_func(MGLSampler * self) {
-    return compare_func_to_string(self->compare_func);
+    return PyObject_CallMethod(helper, "compare_func_to_str", "(i)", self->compare_func);
 }
 
 int MGLSampler_set_compare_func(MGLSampler * self, PyObject * value) {
-    const char * func = PyUnicode_AsUTF8(value);
-    self->compare_func = compare_func_from_string(func);
+    PyObject * compare_func = PyObject_CallMethod(helper, "compare_func_from_str", "(O)", value);
+    if (!compare_func) {
+        return -1;
+    }
+
+    self->compare_func = PyLong_AsLong(compare_func);
 
     const GLMethods & gl = self->context->gl;
 
@@ -6211,19 +6067,16 @@ int MGLTexture_set_filter(MGLTexture * self, PyObject * value) {
     return 0;
 }
 
-PyObject * MGLTexture_get_swizzle(MGLTexture * self, void * closure) {
-
-    if (self->depth) {
+PyObject * get_swizzle(MGLContext * context, int texture_target, int texture_obj, bool depth) {
+    if (depth) {
         MGLError_Set("cannot get swizzle of depth textures");
-        return 0;
+        return NULL;
     }
 
-    int texture_target = self->samples ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+    const GLMethods & gl = context->gl;
 
-    const GLMethods & gl = self->context->gl;
-
-    gl.ActiveTexture(GL_TEXTURE0 + self->context->default_texture_unit);
-    gl.BindTexture(texture_target, self->texture_obj);
+    gl.ActiveTexture(GL_TEXTURE0 + context->default_texture_unit);
+    gl.BindTexture(texture_target, texture_obj);
 
     int swizzle_r = 0;
     int swizzle_g = 0;
@@ -6235,65 +6088,42 @@ PyObject * MGLTexture_get_swizzle(MGLTexture * self, void * closure) {
     gl.GetTexParameteriv(texture_target, GL_TEXTURE_SWIZZLE_B, &swizzle_b);
     gl.GetTexParameteriv(texture_target, GL_TEXTURE_SWIZZLE_A, &swizzle_a);
 
-    char swizzle[5] = {
-        char_from_swizzle(swizzle_r),
-        char_from_swizzle(swizzle_g),
-        char_from_swizzle(swizzle_b),
-        char_from_swizzle(swizzle_a),
-        0,
-    };
-
-    return PyUnicode_FromStringAndSize(swizzle, 4);
+    return PyObject_CallMethod(helper, "swizzle_to_str", "(iiii)", swizzle_r, swizzle_g, swizzle_b, swizzle_a);
 }
 
-int MGLTexture_set_swizzle(MGLTexture * self, PyObject * value, void * closure) {
-    const char * swizzle = PyUnicode_AsUTF8(value);
-
-    if (self->depth) {
+int set_swizzle(MGLContext * context, int texture_target, int texture_obj, bool depth, PyObject * value) {
+    if (depth) {
         MGLError_Set("cannot set swizzle for depth textures");
         return -1;
     }
 
-    if (!swizzle[0]) {
-        MGLError_Set("the swizzle is empty");
+    PyObject * tup = PyObject_CallMethod(helper, "swizzle_from_str", "(O)", value);
+    if (!tup) {
         return -1;
     }
 
-    int tex_swizzle[4] = {-1, -1, -1, -1};
+    const GLMethods & gl = context->gl;
 
-    for (int i = 0; swizzle[i]; ++i) {
-        if (i > 3) {
-            MGLError_Set("the swizzle is too long");
-            return -1;
-        }
+    gl.ActiveTexture(GL_TEXTURE0 + context->default_texture_unit);
+    gl.BindTexture(texture_target, texture_obj);
 
-        tex_swizzle[i] = swizzle_from_char(swizzle[i]);
+    gl.TexParameteri(texture_target, GL_TEXTURE_SWIZZLE_R, PyLong_AsLong(PyTuple_GetItem(tup, 0)));
+    gl.TexParameteri(texture_target, GL_TEXTURE_SWIZZLE_G, PyLong_AsLong(PyTuple_GetItem(tup, 1)));
+    gl.TexParameteri(texture_target, GL_TEXTURE_SWIZZLE_B, PyLong_AsLong(PyTuple_GetItem(tup, 2)));
+    gl.TexParameteri(texture_target, GL_TEXTURE_SWIZZLE_A, PyLong_AsLong(PyTuple_GetItem(tup, 3)));
 
-        if (tex_swizzle[i] == -1) {
-            MGLError_Set("'%c' is not a valid swizzle parameter", swizzle[i]);
-            return -1;
-        }
-    }
-
-    int texture_target = self->samples ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-
-    const GLMethods & gl = self->context->gl;
-
-    gl.ActiveTexture(GL_TEXTURE0 + self->context->default_texture_unit);
-    gl.BindTexture(texture_target, self->texture_obj);
-
-    gl.TexParameteri(texture_target, GL_TEXTURE_SWIZZLE_R, tex_swizzle[0]);
-    if (tex_swizzle[1] != -1) {
-        gl.TexParameteri(texture_target, GL_TEXTURE_SWIZZLE_G, tex_swizzle[1]);
-        if (tex_swizzle[2] != -1) {
-            gl.TexParameteri(texture_target, GL_TEXTURE_SWIZZLE_B, tex_swizzle[2]);
-            if (tex_swizzle[3] != -1) {
-                gl.TexParameteri(texture_target, GL_TEXTURE_SWIZZLE_A, tex_swizzle[3]);
-            }
-        }
-    }
-
+    Py_DECREF(tup);
     return 0;
+}
+
+PyObject * MGLTexture_get_swizzle(MGLTexture * self) {
+    int texture_target = self->samples ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+    return get_swizzle(self->context, texture_target, self->texture_obj, self->depth);
+}
+
+int MGLTexture_set_swizzle(MGLTexture * self, PyObject * value) {
+    int texture_target = self->samples ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+    return set_swizzle(self->context, texture_target, self->texture_obj, self->depth, value);
 }
 
 PyObject * MGLTexture_get_compare_func(MGLTexture * self) {
@@ -6302,7 +6132,7 @@ PyObject * MGLTexture_get_compare_func(MGLTexture * self) {
         return 0;
     }
 
-    return compare_func_to_string(self->compare_func);
+    return PyObject_CallMethod(helper, "compare_func_to_str", "(i)", self->compare_func);
 }
 
 int MGLTexture_set_compare_func(MGLTexture * self, PyObject * value) {
@@ -6311,19 +6141,19 @@ int MGLTexture_set_compare_func(MGLTexture * self, PyObject * value) {
         return -1;
     }
 
-    int texture_target = self->samples ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-    const char * func = PyUnicode_AsUTF8(value);
-
-    if (PyErr_Occurred()) {
+    PyObject * compare_func = PyObject_CallMethod(helper, "compare_func_from_str", "(O)", value);
+    if (!compare_func) {
         return -1;
     }
 
-    self->compare_func = compare_func_from_string(func);
+    int texture_target = self->samples ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+
+    self->compare_func = PyLong_AsLong(compare_func);
 
     const GLMethods & gl = self->context->gl;
     gl.ActiveTexture(GL_TEXTURE0 + self->context->default_texture_unit);
     gl.BindTexture(texture_target, self->texture_obj);
-    if (self->compare_func == 0) {
+    if (!self->compare_func) {
         gl.TexParameteri(texture_target, GL_TEXTURE_COMPARE_MODE, GL_NONE);
     } else {
         gl.TexParameteri(texture_target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
@@ -6879,76 +6709,12 @@ int MGLTexture3D_set_filter(MGLTexture3D * self, PyObject * value) {
     return 0;
 }
 
-PyObject * MGLTexture3D_get_swizzle(MGLTexture3D * self, void * closure) {
-
-    const GLMethods & gl = self->context->gl;
-
-    gl.ActiveTexture(GL_TEXTURE0 + self->context->default_texture_unit);
-    gl.BindTexture(GL_TEXTURE_3D, self->texture_obj);
-
-    int swizzle_r = 0;
-    int swizzle_g = 0;
-    int swizzle_b = 0;
-    int swizzle_a = 0;
-
-    gl.GetTexParameteriv(GL_TEXTURE_3D, GL_TEXTURE_SWIZZLE_R, &swizzle_r);
-    gl.GetTexParameteriv(GL_TEXTURE_3D, GL_TEXTURE_SWIZZLE_G, &swizzle_g);
-    gl.GetTexParameteriv(GL_TEXTURE_3D, GL_TEXTURE_SWIZZLE_B, &swizzle_b);
-    gl.GetTexParameteriv(GL_TEXTURE_3D, GL_TEXTURE_SWIZZLE_A, &swizzle_a);
-
-    char swizzle[5] = {
-        char_from_swizzle(swizzle_r),
-        char_from_swizzle(swizzle_g),
-        char_from_swizzle(swizzle_b),
-        char_from_swizzle(swizzle_a),
-        0,
-    };
-
-    return PyUnicode_FromStringAndSize(swizzle, 4);
+PyObject * MGLTexture3D_get_swizzle(MGLTexture3D * self) {
+    return get_swizzle(self->context, GL_TEXTURE_3D, self->texture_obj, false);
 }
 
-int MGLTexture3D_set_swizzle(MGLTexture3D * self, PyObject * value, void * closure) {
-    const char * swizzle = PyUnicode_AsUTF8(value);
-
-    if (!swizzle[0]) {
-        MGLError_Set("the swizzle is empty");
-        return -1;
-    }
-
-    int tex_swizzle[4] = {-1, -1, -1, -1};
-
-    for (int i = 0; swizzle[i]; ++i) {
-        if (i > 3) {
-            MGLError_Set("the swizzle is too long");
-            return -1;
-        }
-
-        tex_swizzle[i] = swizzle_from_char(swizzle[i]);
-
-        if (tex_swizzle[i] == -1) {
-            MGLError_Set("'%c' is not a valid swizzle parameter", swizzle[i]);
-            return -1;
-        }
-    }
-
-
-    const GLMethods & gl = self->context->gl;
-
-    gl.ActiveTexture(GL_TEXTURE0 + self->context->default_texture_unit);
-    gl.BindTexture(GL_TEXTURE_3D, self->texture_obj);
-
-    gl.TexParameteri(GL_TEXTURE_3D, GL_TEXTURE_SWIZZLE_R, tex_swizzle[0]);
-    if (tex_swizzle[1] != -1) {
-        gl.TexParameteri(GL_TEXTURE_3D, GL_TEXTURE_SWIZZLE_G, tex_swizzle[1]);
-        if (tex_swizzle[2] != -1) {
-            gl.TexParameteri(GL_TEXTURE_3D, GL_TEXTURE_SWIZZLE_B, tex_swizzle[2]);
-            if (tex_swizzle[3] != -1) {
-                gl.TexParameteri(GL_TEXTURE_3D, GL_TEXTURE_SWIZZLE_A, tex_swizzle[3]);
-            }
-        }
-    }
-
-    return 0;
+int MGLTexture3D_set_swizzle(MGLTexture3D * self, PyObject * value) {
+    return set_swizzle(self->context, GL_TEXTURE_3D, self->texture_obj, false, value);
 }
 
 PyObject * MGLContext_texture_array(MGLContext * self, PyObject * args) {
@@ -7477,76 +7243,12 @@ int MGLTextureArray_set_filter(MGLTextureArray * self, PyObject * value) {
     return 0;
 }
 
-PyObject * MGLTextureArray_get_swizzle(MGLTextureArray * self, void * closure) {
-
-    const GLMethods & gl = self->context->gl;
-
-    gl.ActiveTexture(GL_TEXTURE0 + self->context->default_texture_unit);
-    gl.BindTexture(GL_TEXTURE_2D_ARRAY, self->texture_obj);
-
-    int swizzle_r = 0;
-    int swizzle_g = 0;
-    int swizzle_b = 0;
-    int swizzle_a = 0;
-
-    gl.GetTexParameteriv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_R, &swizzle_r);
-    gl.GetTexParameteriv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_G, &swizzle_g);
-    gl.GetTexParameteriv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_B, &swizzle_b);
-    gl.GetTexParameteriv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_A, &swizzle_a);
-
-    char swizzle[5] = {
-        char_from_swizzle(swizzle_r),
-        char_from_swizzle(swizzle_g),
-        char_from_swizzle(swizzle_b),
-        char_from_swizzle(swizzle_a),
-        0,
-    };
-
-    return PyUnicode_FromStringAndSize(swizzle, 4);
+PyObject * MGLTextureArray_get_swizzle(MGLTextureArray * self) {
+    return get_swizzle(self->context, GL_TEXTURE_2D_ARRAY, self->texture_obj, false);
 }
 
-int MGLTextureArray_set_swizzle(MGLTextureArray * self, PyObject * value, void * closure) {
-    const char * swizzle = PyUnicode_AsUTF8(value);
-
-    if (!swizzle[0]) {
-        MGLError_Set("the swizzle is empty");
-        return -1;
-    }
-
-    int tex_swizzle[4] = {-1, -1, -1, -1};
-
-    for (int i = 0; swizzle[i]; ++i) {
-        if (i > 3) {
-            MGLError_Set("the swizzle is too long");
-            return -1;
-        }
-
-        tex_swizzle[i] = swizzle_from_char(swizzle[i]);
-
-        if (tex_swizzle[i] == -1) {
-            MGLError_Set("'%c' is not a valid swizzle parameter", swizzle[i]);
-            return -1;
-        }
-    }
-
-
-    const GLMethods & gl = self->context->gl;
-
-    gl.ActiveTexture(GL_TEXTURE0 + self->context->default_texture_unit);
-    gl.BindTexture(GL_TEXTURE_2D_ARRAY, self->texture_obj);
-
-    gl.TexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_R, tex_swizzle[0]);
-    if (tex_swizzle[1] != -1) {
-        gl.TexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_G, tex_swizzle[1]);
-        if (tex_swizzle[2] != -1) {
-            gl.TexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_B, tex_swizzle[2]);
-            if (tex_swizzle[3] != -1) {
-                gl.TexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_A, tex_swizzle[3]);
-            }
-        }
-    }
-
-    return 0;
+int MGLTextureArray_set_swizzle(MGLTextureArray * self, PyObject * value) {
+    return set_swizzle(self->context, GL_TEXTURE_2D_ARRAY, self->texture_obj, false, value);
 }
 
 PyObject * MGLTextureArray_get_anisotropy(MGLTextureArray * self) {
@@ -8029,76 +7731,12 @@ int MGLTextureCube_set_filter(MGLTextureCube * self, PyObject * value) {
     return 0;
 }
 
-PyObject * MGLTextureCube_get_swizzle(MGLTextureCube * self, void * closure) {
-
-    const GLMethods & gl = self->context->gl;
-
-    gl.ActiveTexture(GL_TEXTURE0 + self->context->default_texture_unit);
-    gl.BindTexture(GL_TEXTURE_CUBE_MAP, self->texture_obj);
-
-    int swizzle_r = 0;
-    int swizzle_g = 0;
-    int swizzle_b = 0;
-    int swizzle_a = 0;
-
-    gl.GetTexParameteriv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_SWIZZLE_R, &swizzle_r);
-    gl.GetTexParameteriv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_SWIZZLE_G, &swizzle_g);
-    gl.GetTexParameteriv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_SWIZZLE_B, &swizzle_b);
-    gl.GetTexParameteriv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_SWIZZLE_A, &swizzle_a);
-
-    char swizzle[5] = {
-        char_from_swizzle(swizzle_r),
-        char_from_swizzle(swizzle_g),
-        char_from_swizzle(swizzle_b),
-        char_from_swizzle(swizzle_a),
-        0,
-    };
-
-    return PyUnicode_FromStringAndSize(swizzle, 4);
+PyObject * MGLTextureCube_get_swizzle(MGLTextureCube * self) {
+    return get_swizzle(self->context, GL_TEXTURE_CUBE_MAP, self->texture_obj, false);
 }
 
-int MGLTextureCube_set_swizzle(MGLTextureCube * self, PyObject * value, void * closure) {
-    const char * swizzle = PyUnicode_AsUTF8(value);
-
-    if (!swizzle[0]) {
-        MGLError_Set("the swizzle is empty");
-        return -1;
-    }
-
-    int tex_swizzle[4] = {-1, -1, -1, -1};
-
-    for (int i = 0; swizzle[i]; ++i) {
-        if (i > 3) {
-            MGLError_Set("the swizzle is too long");
-            return -1;
-        }
-
-        tex_swizzle[i] = swizzle_from_char(swizzle[i]);
-
-        if (tex_swizzle[i] == -1) {
-            MGLError_Set("'%c' is not a valid swizzle parameter", swizzle[i]);
-            return -1;
-        }
-    }
-
-
-    const GLMethods & gl = self->context->gl;
-
-    gl.ActiveTexture(GL_TEXTURE0 + self->context->default_texture_unit);
-    gl.BindTexture(GL_TEXTURE_CUBE_MAP, self->texture_obj);
-
-    gl.TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_SWIZZLE_R, tex_swizzle[0]);
-    if (tex_swizzle[1] != -1) {
-        gl.TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_SWIZZLE_G, tex_swizzle[1]);
-        if (tex_swizzle[2] != -1) {
-            gl.TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_SWIZZLE_B, tex_swizzle[2]);
-            if (tex_swizzle[3] != -1) {
-                gl.TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_SWIZZLE_A, tex_swizzle[3]);
-            }
-        }
-    }
-
-    return 0;
+int MGLTextureCube_set_swizzle(MGLTextureCube * self, PyObject * value) {
+    return set_swizzle(self->context, GL_TEXTURE_CUBE_MAP, self->texture_obj, false, value);
 }
 
 PyObject * MGLTextureCube_get_anisotropy(MGLTextureCube * self) {

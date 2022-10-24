@@ -636,3 +636,81 @@ def make_varying(name, number, array_length, dimension):
 
 def clean_glsl_name(name):
     return re.sub(name, r'\[[^\]]*\]$', '')
+
+
+SWIZZLE_FROM_CHAR = {
+    'R': 0x1903,
+    'r': 0x1903,
+    'G': 0x1904,
+    'g': 0x1904,
+    'B': 0x1905,
+    'b': 0x1905,
+    'A': 0x1906,
+    'a': 0x1906,
+    '0': 0x0000,
+    '1': 0x0001,
+}
+
+SWIZZLE_TO_CHAR = {
+    0x1903: 'R',
+    0x1904: 'G',
+    0x1905: 'B',
+    0x1906: 'A',
+    0x0000: '0',
+    0x0001: '1',
+}
+
+
+def swizzle_from_str(value):
+    if len(value) > 4:
+        raise Error('swizzle too long')
+
+    if len(value) == 0:
+        raise Error('swizzle is empty')
+
+    for c in value:
+        if c not in SWIZZLE_FROM_CHAR:
+            raise Error(f'invalid swizzle character {c}')
+
+    return [SWIZZLE_FROM_CHAR[c] for c in (value + '0000')[:4]]
+
+
+def swizzle_to_str(*args):
+    return ''.join(SWIZZLE_TO_CHAR.get(c, '?') for c in args)
+
+
+COMPARE_FUNC_FROM_STR = {
+    '<=': 0x0203,
+    '<': 0x0201,
+    '>=': 0x0206,
+    '>': 0x0204,
+    '==': 0x0202,
+    '!=': 0x0205,
+    '0': 0x0200,
+    '1': 0x0207,
+}
+
+COMPARE_FUNC_TO_STR = {
+    0x0203: '<=',
+    0x0201: '<',
+    0x0206: '>=',
+    0x0204: '>',
+    0x0202: '==',
+    0x0205: '!=',
+    0x0200: '0',
+    0x0207: '1',
+}
+
+
+def compare_func_from_str(value):
+    if value is None or value == '':
+        return 0
+
+    if value not in COMPARE_FUNC_FROM_STR:
+        raise Error(f'unknown compare_func {value}')
+
+    return COMPARE_FUNC_FROM_STR[value]
+
+
+def compare_func_to_str(value):
+    return COMPARE_FUNC_TO_STR.get(value, '?')
