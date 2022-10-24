@@ -102,18 +102,6 @@ mgl = Extension(
         'moderngl/src/TextureCube.cpp',
         'moderngl/src/VertexArray.cpp',
     ],
-    depends=[
-        'moderngl/src/gl_methods.hpp',
-        'moderngl/src/OpenGL.hpp',
-
-        'moderngl/src/BufferFormat.hpp',
-        'moderngl/src/Error.hpp',
-        'moderngl/src/InlineMethods.hpp',
-        'moderngl/src/OpenGL.hpp',
-        'moderngl/src/Python.hpp',
-        'moderngl/src/Types.hpp',
-        'moderngl/src/UniformGetSetters.hpp',
-    ],
 )
 
 short_description = 'ModernGL: High performance rendering for Python 3'
