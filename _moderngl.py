@@ -703,7 +703,7 @@ COMPARE_FUNC_TO_STR = {
 
 
 def compare_func_from_str(value):
-    if value is None or value == '':
+    if value is None or value == '' or value == '?':
         return 0
 
     if value not in COMPARE_FUNC_FROM_STR:
