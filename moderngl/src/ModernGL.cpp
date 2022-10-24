@@ -823,95 +823,95 @@ PyType_Slot MGLBuffer_slots[] = {
     {Py_bf_getbuffer, MGLBuffer_tp_as_buffer_get_view},
     {Py_bf_releasebuffer, MGLBuffer_tp_as_buffer_release_view},
     {Py_tp_methods, MGLBuffer_methods},
-    {Py_tp_dealloc, default_dealloc},
+    {Py_tp_dealloc, (void *)default_dealloc},
     {},
 };
 
 PyType_Slot MGLComputeShader_slots[] = {
     {Py_tp_methods, MGLComputeShader_methods},
-    {Py_tp_dealloc, default_dealloc},
+    {Py_tp_dealloc, (void *)default_dealloc},
     {},
 };
 
 PyType_Slot MGLContext_slots[] = {
     {Py_tp_methods, MGLContext_methods},
     {Py_tp_getset, MGLContext_getset},
-    {Py_tp_dealloc, default_dealloc},
+    {Py_tp_dealloc, (void *)default_dealloc},
     {},
 };
 
 PyType_Slot MGLFramebuffer_slots[] = {
     {Py_tp_methods, MGLFramebuffer_methods},
     {Py_tp_getset, MGLFramebuffer_getset},
-    {Py_tp_dealloc, default_dealloc},
+    {Py_tp_dealloc, (void *)default_dealloc},
     {},
 };
 
 PyType_Slot MGLProgram_slots[] = {
     {Py_tp_methods, MGLProgram_methods},
-    {Py_tp_dealloc, default_dealloc},
+    {Py_tp_dealloc, (void *)default_dealloc},
     {},
 };
 
 PyType_Slot MGLQuery_slots[] = {
     {Py_tp_methods, MGLQuery_methods},
     {Py_tp_getset, MGLQuery_getset},
-    {Py_tp_dealloc, default_dealloc},
+    {Py_tp_dealloc, (void *)default_dealloc},
     {},
 };
 
 PyType_Slot MGLRenderbuffer_slots[] = {
     {Py_tp_methods, MGLRenderbuffer_methods},
-    {Py_tp_dealloc, default_dealloc},
+    {Py_tp_dealloc, (void *)default_dealloc},
     {},
 };
 
 PyType_Slot MGLScope_slots[] = {
     {Py_tp_methods, MGLScope_methods},
     {Py_tp_getset, MGLScope_getset},
-    {Py_tp_dealloc, default_dealloc},
+    {Py_tp_dealloc, (void *)default_dealloc},
     {},
 };
 
 PyType_Slot MGLTexture_slots[] = {
     {Py_tp_methods, MGLTexture_methods},
     {Py_tp_getset, MGLTexture_getset},
-    {Py_tp_dealloc, default_dealloc},
+    {Py_tp_dealloc, (void *)default_dealloc},
     {},
 };
 
 PyType_Slot MGLTextureArray_slots[] = {
     {Py_tp_methods, MGLTextureArray_methods},
     {Py_tp_getset, MGLTextureArray_getset},
-    {Py_tp_dealloc, default_dealloc},
+    {Py_tp_dealloc, (void *)default_dealloc},
     {},
 };
 
 PyType_Slot MGLTextureCube_slots[] = {
     {Py_tp_methods, MGLTextureCube_methods},
     {Py_tp_getset, MGLTextureCube_getset},
-    {Py_tp_dealloc, default_dealloc},
+    {Py_tp_dealloc, (void *)default_dealloc},
     {},
 };
 
 PyType_Slot MGLTexture3D_slots[] = {
     {Py_tp_methods, MGLTexture3D_methods},
     {Py_tp_getset, MGLTexture3D_getset},
-    {Py_tp_dealloc, default_dealloc},
+    {Py_tp_dealloc, (void *)default_dealloc},
     {},
 };
 
 PyType_Slot MGLVertexArray_slots[] = {
     {Py_tp_methods, MGLVertexArray_methods},
     {Py_tp_getset, MGLVertexArray_getset},
-    {Py_tp_dealloc, default_dealloc},
+    {Py_tp_dealloc, (void *)default_dealloc},
     {},
 };
 
 PyType_Slot MGLSampler_slots[] = {
     {Py_tp_methods, MGLSampler_methods},
     {Py_tp_getset, MGLSampler_getset},
-    {Py_tp_dealloc, default_dealloc},
+    {Py_tp_dealloc, (void *)default_dealloc},
     {},
 };
 
