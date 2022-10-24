@@ -161,10 +161,7 @@ struct MGLRenderbuffer {
     PyObject_HEAD
     MGLContext * context;
     MGLDataType * data_type;
-    union {
-        int renderbuffer_obj;
-        int texture_obj;
-    };
+    int renderbuffer_obj;
     int width;
     int height;
     int components;
@@ -192,10 +189,7 @@ struct MGLTexture {
     PyObject_HEAD
     MGLContext * context;
     MGLDataType * data_type;
-    union {
-        int renderbuffer_obj;
-        int texture_obj;
-    };
+    int texture_obj;
     int width;
     int height;
     int components;
@@ -234,10 +228,7 @@ struct MGLTextureArray {
     PyObject_HEAD
     MGLContext * context;
     MGLDataType * data_type;
-    union {
-        int renderbuffer_obj;
-        int texture_obj;
-    };
+    int texture_obj;
     int width;
     int height;
     int layers;
@@ -298,22 +289,6 @@ struct MGLSampler {
     float max_lod;
     bool released;
 };
-
-void MGLBuffer_Invalidate(MGLBuffer * buffer);
-void MGLComputeShader_Invalidate(MGLComputeShader * program);
-void MGLContext_Invalidate(MGLContext * context);
-void MGLFramebuffer_Invalidate(MGLFramebuffer * framebuffer);
-void MGLProgram_Invalidate(MGLProgram * program);
-void MGLRenderbuffer_Invalidate(MGLRenderbuffer * renderbuffer);
-void MGLTexture3D_Invalidate(MGLTexture3D * texture);
-void MGLTextureCube_Invalidate(MGLTextureCube * texture);
-void MGLTexture_Invalidate(MGLTexture * texture);
-void MGLTextureArray_Invalidate(MGLTextureArray * texture);
-void MGLVertexArray_Invalidate(MGLVertexArray * vertex_array);
-void MGLSampler_Invalidate(MGLSampler * sampler);
-void MGLScope_Invalidate(MGLScope * scope);
-
-void MGLVertexArray_Complete(MGLVertexArray * vertex_array);
 
 PyObject * helper;
 PyObject * moderngl_error;
@@ -1067,7 +1042,16 @@ PyObject * MGLBuffer_bind_to_storage_buffer(MGLBuffer * self, PyObject * args) {
 }
 
 PyObject * MGLBuffer_release(MGLBuffer * self) {
-    MGLBuffer_Invalidate(self);
+    if (self->released) {
+        Py_RETURN_NONE;
+    }
+    self->released = true;
+
+    const GLMethods & gl = self->context->gl;
+    gl.DeleteBuffers(1, (GLuint *)&self->buffer_obj);
+
+    Py_DECREF(self->context);
+    Py_DECREF(self);
     Py_RETURN_NONE;
 }
 
@@ -1106,19 +1090,6 @@ int MGLBuffer_tp_as_buffer_get_view(MGLBuffer * self, Py_buffer * view, int flag
 void MGLBuffer_tp_as_buffer_release_view(MGLBuffer * self, Py_buffer * view) {
     const GLMethods & gl = self->context->gl;
     gl.UnmapBuffer(GL_ARRAY_BUFFER);
-}
-
-void MGLBuffer_Invalidate(MGLBuffer * buffer) {
-    if (buffer->released) {
-        return;
-    }
-    buffer->released = true;
-
-    const GLMethods & gl = buffer->context->gl;
-    gl.DeleteBuffers(1, (GLuint *)&buffer->buffer_obj);
-
-    Py_DECREF(buffer->context);
-    Py_DECREF(buffer);
 }
 
 FormatIterator::FormatIterator(const char * str) : ptr(str) {
@@ -1543,24 +1514,18 @@ PyObject * MGLComputeShader_run(MGLComputeShader * self, PyObject * args) {
 }
 
 PyObject * MGLComputeShader_release(MGLComputeShader * self) {
-    MGLComputeShader_Invalidate(self);
-    Py_RETURN_NONE;
-}
-
-void MGLComputeShader_Invalidate(MGLComputeShader * compute_shader) {
-    if (compute_shader->released) {
-        return;
+    if (self->released) {
+        Py_RETURN_NONE;
     }
-    compute_shader->released = true;
+    self->released = true;
 
-    // TODO: decref
+    const GLMethods & gl = self->context->gl;
+    gl.DeleteShader(self->shader_obj);
+    gl.DeleteProgram(self->program_obj);
 
-    const GLMethods & gl = compute_shader->context->gl;
-    gl.DeleteShader(compute_shader->shader_obj);
-    gl.DeleteProgram(compute_shader->program_obj);
-
-    Py_DECREF(compute_shader->context);
-    Py_DECREF(compute_shader);
+    Py_DECREF(self->context);
+    Py_DECREF(self);
+    Py_RETURN_NONE;
 }
 
 PyObject * MGLContext_enable_only(MGLContext * self, PyObject * args) {
@@ -2025,7 +1990,14 @@ PyObject * MGLContext_exit(MGLContext * self) {
 }
 
 PyObject * MGLContext_release(MGLContext * self) {
-    MGLContext_Invalidate(self);
+    if (self->released) {
+        Py_RETURN_NONE;
+    }
+    self->released = true;
+
+    PyObject_CallMethod(self->ctx, "release", NULL);
+
+    Py_DECREF(self);
     Py_RETURN_NONE;
 }
 
@@ -3052,19 +3024,6 @@ PyObject * MGLContext_get_info(MGLContext * self, void * closure) {
     return info;
 }
 
-void MGLContext_Invalidate(MGLContext * context) {
-    if (context->released) {
-        return;
-    }
-    context->released = true;
-
-    PyObject_CallMethod(context->ctx, "release", NULL);
-
-    // TODO: decref
-
-    Py_DECREF(context);
-}
-
 PyObject * MGLContext_framebuffer(MGLContext * self, PyObject * args) {
     PyObject * color_attachments;
     PyObject * depth_attachment;
@@ -3384,7 +3343,19 @@ PyObject * MGLContext_framebuffer(MGLContext * self, PyObject * args) {
 }
 
 PyObject * MGLFramebuffer_release(MGLFramebuffer * self) {
-    MGLFramebuffer_Invalidate(self);
+    if (self->released) {
+        Py_RETURN_NONE;
+    }
+    self->released = true;
+
+    if (self->framebuffer_obj) {
+        self->context->gl.DeleteFramebuffers(1, (GLuint *)&self->framebuffer_obj);
+        Py_DECREF(self->context);
+        delete[] self->draw_buffers;
+        delete[] self->color_mask;
+    }
+
+    Py_DECREF(self);
     Py_RETURN_NONE;
 }
 
@@ -4092,22 +4063,6 @@ PyObject * MGLFramebuffer_get_bits(MGLFramebuffer * self, void * closure) {
     return result;
 }
 
-void MGLFramebuffer_Invalidate(MGLFramebuffer * framebuffer) {
-    if (framebuffer->released) {
-        return;
-    }
-    framebuffer->released = true;
-
-    if (framebuffer->framebuffer_obj) {
-        framebuffer->context->gl.DeleteFramebuffers(1, (GLuint *)&framebuffer->framebuffer_obj);
-        Py_DECREF(framebuffer->context);
-        delete[] framebuffer->draw_buffers;
-        delete[] framebuffer->color_mask;
-    }
-
-    Py_DECREF(framebuffer);
-}
-
 PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
     PyObject * shaders[5];
     PyObject * outputs;
@@ -4694,20 +4649,16 @@ PyObject * MGLContext_program(MGLContext * self, PyObject * args) {
 }
 
 PyObject * MGLProgram_release(MGLProgram * self) {
-    MGLProgram_Invalidate(self);
-    Py_RETURN_NONE;
-}
-
-void MGLProgram_Invalidate(MGLProgram * program) {
-    if (program->released) {
-        return;
+    if (self->released) {
+        Py_RETURN_NONE;
     }
-    program->released = true;
+    self->released = true;
 
-    const GLMethods & gl = program->context->gl;
-    gl.DeleteProgram(program->program_obj);
+    const GLMethods & gl = self->context->gl;
+    gl.DeleteProgram(self->program_obj);
 
-    Py_DECREF(program);
+    Py_DECREF(self);
+    Py_RETURN_NONE;
 }
 
 PyObject * MGLContext_query(MGLContext * self, PyObject * args) {
@@ -4850,22 +4801,6 @@ PyObject * MGLQuery_get_elapsed(MGLQuery * self) {
     return PyLong_FromLong(elapsed);
 }
 
-void MGLQuery_Invalidate(MGLQuery * query) {
-    if (query->released) {
-        return;
-    }
-    query->released = true;
-
-    // TODO: decref
-
-    // const GLMethods & gl = query->context->gl;
-
-    // TODO: release
-
-    Py_DECREF(query->context);
-    Py_DECREF(query);
-}
-
 PyObject * MGLContext_renderbuffer(MGLContext * self, PyObject * args) {
     int width;
     int height;
@@ -4998,22 +4933,16 @@ PyObject * MGLContext_depth_renderbuffer(MGLContext * self, PyObject * args) {
 }
 
 PyObject * MGLRenderbuffer_release(MGLRenderbuffer * self) {
-    MGLRenderbuffer_Invalidate(self);
-    Py_RETURN_NONE;
-}
-
-void MGLRenderbuffer_Invalidate(MGLRenderbuffer * renderbuffer) {
-    if (renderbuffer->released) {
-        return;
+    if (self->released) {
+        Py_RETURN_NONE;
     }
-    renderbuffer->released = true;
+    self->released = true;
 
-    // TODO: decref
+    const GLMethods & gl = self->context->gl;
+    gl.DeleteRenderbuffers(1, (GLuint *)&self->renderbuffer_obj);
 
-    const GLMethods & gl = renderbuffer->context->gl;
-    gl.DeleteRenderbuffers(1, (GLuint *)&renderbuffer->renderbuffer_obj);
-
-    Py_DECREF(renderbuffer);
+    Py_DECREF(self);
+    Py_RETURN_NONE;
 }
 
 PyObject * MGLContext_sampler(MGLContext * self) {
@@ -5078,7 +5007,16 @@ PyObject * MGLSampler_clear(MGLSampler * self, PyObject * args) {
 }
 
 PyObject * MGLSampler_release(MGLSampler * self) {
-    MGLSampler_Invalidate(self);
+    if (self->released) {
+        Py_RETURN_NONE;
+    }
+    self->released = true;
+
+    const GLMethods & gl = self->context->gl;
+    gl.DeleteSamplers(1, (GLuint *)&self->sampler_obj);
+
+    Py_DECREF(self);
+    Py_DECREF(self->context);
     Py_RETURN_NONE;
 }
 
@@ -5263,19 +5201,6 @@ int MGLSampler_set_max_lod(MGLSampler * self, PyObject * value) {
     gl.SamplerParameterf(self->sampler_obj, GL_TEXTURE_MAX_LOD, self->max_lod);
 
     return 0;
-}
-
-void MGLSampler_Invalidate(MGLSampler * sampler) {
-    if (sampler->released) {
-        return;
-    }
-    sampler->released = true;
-
-    const GLMethods & gl = sampler->context->gl;
-    gl.DeleteSamplers(1, (GLuint *)&sampler->sampler_obj);
-
-    Py_DECREF(sampler);
-    Py_DECREF(sampler->context);
 }
 
 PyObject * MGLContext_scope(MGLContext * self, PyObject * args) {
@@ -5510,21 +5435,17 @@ PyObject * MGLScope_end(MGLScope * self) {
 }
 
 PyObject * MGLScope_release(MGLScope * self) {
-    MGLScope_Invalidate(self);
-    Py_RETURN_NONE;
-}
-
-void MGLScope_Invalidate(MGLScope * scope) {
-    if (scope->released) {
-        return;
+    if (self->released) {
+        Py_RETURN_NONE;
     }
-    scope->released = true;
+    self->released = true;
 
-    Py_DECREF(scope->framebuffer);
-    Py_DECREF(scope->old_framebuffer);
+    Py_DECREF(self->framebuffer);
+    Py_DECREF(self->old_framebuffer);
 
-    Py_DECREF(scope->context);
-    Py_DECREF(scope);
+    Py_DECREF(self->context);
+    Py_DECREF(self);
+    Py_RETURN_NONE;
 }
 
 PyObject * MGLContext_texture(MGLContext * self, PyObject * args) {
@@ -6212,7 +6133,16 @@ PyObject * MGLTexture_build_mipmaps(MGLTexture * self, PyObject * args) {
 }
 
 PyObject * MGLTexture_release(MGLTexture * self) {
-    MGLTexture_Invalidate(self);
+    if (self->released) {
+        Py_RETURN_NONE;
+    }
+    self->released = true;
+
+    const GLMethods & gl = self->context->gl;
+    gl.DeleteTextures(1, (GLuint *)&self->texture_obj);
+
+    Py_DECREF(self->context);
+    Py_DECREF(self);
     Py_RETURN_NONE;
 }
 
@@ -6433,19 +6363,6 @@ int MGLTexture_set_anisotropy(MGLTexture * self, PyObject * value) {
     gl.TexParameterf(texture_target, GL_TEXTURE_MAX_ANISOTROPY, self->anisotropy);
 
     return 0;
-}
-
-void MGLTexture_Invalidate(MGLTexture * texture) {
-    if (texture->released) {
-        return;
-    }
-    texture->released = true;
-
-    const GLMethods & gl = texture->context->gl;
-    gl.DeleteTextures(1, (GLuint *)&texture->texture_obj);
-
-    Py_DECREF(texture->context);
-    Py_DECREF(texture);
 }
 
 PyObject * MGLContext_texture3d(MGLContext * self, PyObject * args) {
@@ -6863,7 +6780,16 @@ PyObject * MGLTexture3D_build_mipmaps(MGLTexture3D * self, PyObject * args) {
 }
 
 PyObject * MGLTexture3D_release(MGLTexture3D * self) {
-    MGLTexture3D_Invalidate(self);
+    if (self->released) {
+        Py_RETURN_NONE;
+    }
+    self->released = true;
+
+    const GLMethods & gl = self->context->gl;
+    gl.DeleteTextures(1, (GLuint *)&self->texture_obj);
+
+    Py_DECREF(self->context);
+    Py_DECREF(self);
     Py_RETURN_NONE;
 }
 
@@ -7038,21 +6964,6 @@ int MGLTexture3D_set_swizzle(MGLTexture3D * self, PyObject * value, void * closu
     }
 
     return 0;
-}
-
-void MGLTexture3D_Invalidate(MGLTexture3D * texture) {
-    if (texture->released) {
-        return;
-    }
-    texture->released = true;
-
-    // TODO: decref
-
-    const GLMethods & gl = texture->context->gl;
-    gl.DeleteTextures(1, (GLuint *)&texture->texture_obj);
-
-    Py_DECREF(texture->context);
-    Py_DECREF(texture);
 }
 
 PyObject * MGLContext_texture_array(MGLContext * self, PyObject * args) {
@@ -7491,7 +7402,16 @@ PyObject * MGLTextureArray_build_mipmaps(MGLTextureArray * self, PyObject * args
 }
 
 PyObject * MGLTextureArray_release(MGLTextureArray * self) {
-    MGLTextureArray_Invalidate(self);
+    if (self->released) {
+        Py_RETURN_NONE;
+    }
+    self->released = true;
+
+    const GLMethods & gl = self->context->gl;
+    gl.DeleteTextures(1, (GLuint *)&self->texture_obj);
+
+    Py_DECREF(self->context);
+    Py_DECREF(self);
     Py_RETURN_NONE;
 }
 
@@ -7658,21 +7578,6 @@ int MGLTextureArray_set_anisotropy(MGLTextureArray * self, PyObject * value) {
     gl.TexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY, self->anisotropy);
 
     return 0;
-}
-
-void MGLTextureArray_Invalidate(MGLTextureArray * texture) {
-    if (texture->released) {
-        return;
-    }
-    texture->released = true;
-
-    // TODO: decref
-
-    const GLMethods & gl = texture->context->gl;
-    gl.DeleteTextures(1, (GLuint *)&texture->texture_obj);
-
-    Py_DECREF(texture->context);
-    Py_DECREF(texture);
 }
 
 PyObject * MGLContext_texture_cube(MGLContext * self, PyObject * args) {
@@ -8099,7 +8004,17 @@ PyObject * MGLTextureCube_use(MGLTextureCube * self, PyObject * args) {
 }
 
 PyObject * MGLTextureCube_release(MGLTextureCube * self) {
-    MGLTextureCube_Invalidate(self);
+    if (self->released) {
+        Py_RETURN_NONE;
+    }
+    self->released = true;
+
+    // TODO: decref
+
+    const GLMethods & gl = self->context->gl;
+    gl.DeleteTextures(1, (GLuint *)&self->texture_obj);
+
+    Py_DECREF(self);
     Py_RETURN_NONE;
 }
 
@@ -8215,20 +8130,6 @@ int MGLTextureCube_set_anisotropy(MGLTextureCube * self, PyObject * value) {
     gl.TexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY, self->anisotropy);
 
     return 0;
-}
-
-void MGLTextureCube_Invalidate(MGLTextureCube * texture) {
-    if (texture->released) {
-        return;
-    }
-    texture->released = true;
-
-    // TODO: decref
-
-    const GLMethods & gl = texture->context->gl;
-    gl.DeleteTextures(1, (GLuint *)&texture->texture_obj);
-
-    Py_DECREF(texture);
 }
 
 PyObject * MGLContext_vertex_array(MGLContext * self, PyObject * args) {
@@ -8418,7 +8319,18 @@ PyObject * MGLContext_vertex_array(MGLContext * self, PyObject * args) {
     Py_INCREF(self);
     array->context = self;
 
-    MGLVertexArray_Complete(array);
+    array->num_subroutines = 0;
+    array->num_subroutines += array->program->num_vertex_shader_subroutines;
+    array->num_subroutines += array->program->num_fragment_shader_subroutines;
+    array->num_subroutines += array->program->num_geometry_shader_subroutines;
+    array->num_subroutines += array->program->num_tess_evaluation_shader_subroutines;
+    array->num_subroutines += array->program->num_tess_control_shader_subroutines;
+
+    if (array->num_subroutines) {
+        array->subroutines = new unsigned[array->num_subroutines];
+    } else {
+        array->subroutines = 0;
+    }
 
     Py_INCREF(array);
 
@@ -8706,7 +8618,17 @@ PyObject * MGLVertexArray_bind(MGLVertexArray * self, PyObject * args) {
 }
 
 PyObject * MGLVertexArray_release(MGLVertexArray * self) {
-    MGLVertexArray_Invalidate(self);
+    if (self->released) {
+        Py_RETURN_NONE;
+    }
+    self->released = true;
+
+    const GLMethods & gl = self->context->gl;
+    gl.DeleteVertexArrays(1, (GLuint *)&self->vertex_array_obj);
+
+    Py_DECREF(self->program);
+    Py_XDECREF(self->index_buffer);
+    Py_DECREF(self);
     Py_RETURN_NONE;
 }
 
@@ -8785,37 +8707,6 @@ int MGLVertexArray_set_subroutines(MGLVertexArray * self, PyObject * value, void
     }
 
     return 0;
-}
-
-void MGLVertexArray_Invalidate(MGLVertexArray * array) {
-    if (array->released) {
-        return;
-    }
-    array->released = true;
-
-    // TODO: decref
-
-    const GLMethods & gl = array->context->gl;
-    gl.DeleteVertexArrays(1, (GLuint *)&array->vertex_array_obj);
-
-    Py_DECREF(array->program);
-    Py_XDECREF(array->index_buffer);
-    Py_DECREF(array);
-}
-
-void MGLVertexArray_Complete(MGLVertexArray * vertex_array) {
-    vertex_array->num_subroutines = 0;
-    vertex_array->num_subroutines += vertex_array->program->num_vertex_shader_subroutines;
-    vertex_array->num_subroutines += vertex_array->program->num_fragment_shader_subroutines;
-    vertex_array->num_subroutines += vertex_array->program->num_geometry_shader_subroutines;
-    vertex_array->num_subroutines += vertex_array->program->num_tess_evaluation_shader_subroutines;
-    vertex_array->num_subroutines += vertex_array->program->num_tess_control_shader_subroutines;
-
-    if (vertex_array->num_subroutines) {
-        vertex_array->subroutines = new unsigned[vertex_array->num_subroutines];
-    } else {
-        vertex_array->subroutines = 0;
-    }
 }
 
 inline void MGLVertexArray_SET_SUBROUTINES(MGLVertexArray * self, const GLMethods & gl) {
@@ -9177,7 +9068,7 @@ void default_dealloc(PyObject * self) {
 
 PyMethodDef module_methods[] = {
     {"strsize", (PyCFunction)strsize, METH_VARARGS},
-    {"create_context", (PyCFunction)create_context, METH_VARARGS | METH_KEYWORDS, 0},
+    {"create_context", (PyCFunction)create_context, METH_VARARGS | METH_KEYWORDS},
     {"fmtdebug", (PyCFunction)fmtdebug, METH_VARARGS},
     {},
 };
@@ -9242,36 +9133,36 @@ PyMethodDef MGLContext_methods[] = {
 };
 
 PyGetSetDef MGLContext_getset[] = {
-    {"line_width", (getter)MGLContext_get_line_width, (setter)MGLContext_set_line_width, 0, 0},
-    {"point_size", (getter)MGLContext_get_point_size, (setter)MGLContext_set_point_size, 0, 0},
-    {"depth_func", (getter)MGLContext_get_depth_func, (setter)MGLContext_set_depth_func, 0, 0},
-    {"blend_func", (getter)MGLContext_get_blend_func, (setter)MGLContext_set_blend_func, 0, 0},
-    {"blend_equation", (getter)MGLContext_get_blend_equation, (setter)MGLContext_set_blend_equation, 0, 0},
-    {"multisample", (getter)MGLContext_get_multisample, (setter)MGLContext_set_multisample, 0, 0},
-    {"provoking_vertex", (getter)MGLContext_get_provoking_vertex, (setter)MGLContext_set_provoking_vertex, 0, 0},
-    {"polygon_offset", (getter)MGLContext_get_polygon_offset, (setter)MGLContext_set_polygon_offset, 0, 0},
-    {"default_texture_unit", (getter)MGLContext_get_default_texture_unit, (setter)MGLContext_set_default_texture_unit, 0, 0},
-    {"max_samples", (getter)MGLContext_get_max_samples, 0, 0, 0},
-    {"max_integer_samples", (getter)MGLContext_get_max_integer_samples, 0, 0, 0},
-    {"max_texture_units", (getter)MGLContext_get_max_texture_units, 0, 0, 0},
-    {"max_anisotropy", (getter)MGLContext_get_max_anisotropy, 0, 0, 0},
-    {"fbo", (getter)MGLContext_get_fbo, (setter)MGLContext_set_fbo, 0, 0},
-    {"wireframe", (getter)MGLContext_get_wireframe, (setter)MGLContext_set_wireframe, 0, 0},
-    {"front_face", (getter)MGLContext_get_front_face, (setter)MGLContext_set_front_face, 0, 0},
-    {"cull_face", (getter)MGLContext_get_cull_face, (setter)MGLContext_set_cull_face, 0, 0},
-    {"patch_vertices", (getter)MGLContext_get_patch_vertices, (setter)MGLContext_set_patch_vertices, 0, 0},
-    {"extensions", (getter)MGLContext_get_extensions, 0, 0, 0},
-    {"info", (getter)MGLContext_get_info, 0, 0, 0},
-    {"error", (getter)MGLContext_get_error, 0, 0, 0},
+    {"line_width", (getter)MGLContext_get_line_width, (setter)MGLContext_set_line_width},
+    {"point_size", (getter)MGLContext_get_point_size, (setter)MGLContext_set_point_size},
+    {"depth_func", (getter)MGLContext_get_depth_func, (setter)MGLContext_set_depth_func},
+    {"blend_func", (getter)MGLContext_get_blend_func, (setter)MGLContext_set_blend_func},
+    {"blend_equation", (getter)MGLContext_get_blend_equation, (setter)MGLContext_set_blend_equation},
+    {"multisample", (getter)MGLContext_get_multisample, (setter)MGLContext_set_multisample},
+    {"provoking_vertex", (getter)MGLContext_get_provoking_vertex, (setter)MGLContext_set_provoking_vertex},
+    {"polygon_offset", (getter)MGLContext_get_polygon_offset, (setter)MGLContext_set_polygon_offset},
+    {"default_texture_unit", (getter)MGLContext_get_default_texture_unit, (setter)MGLContext_set_default_texture_unit},
+    {"max_samples", (getter)MGLContext_get_max_samples, NULL},
+    {"max_integer_samples", (getter)MGLContext_get_max_integer_samples, NULL},
+    {"max_texture_units", (getter)MGLContext_get_max_texture_units, NULL},
+    {"max_anisotropy", (getter)MGLContext_get_max_anisotropy, NULL},
+    {"fbo", (getter)MGLContext_get_fbo, (setter)MGLContext_set_fbo},
+    {"wireframe", (getter)MGLContext_get_wireframe, (setter)MGLContext_set_wireframe},
+    {"front_face", (getter)MGLContext_get_front_face, (setter)MGLContext_set_front_face},
+    {"cull_face", (getter)MGLContext_get_cull_face, (setter)MGLContext_set_cull_face},
+    {"patch_vertices", (getter)MGLContext_get_patch_vertices, (setter)MGLContext_set_patch_vertices},
+    {"extensions", (getter)MGLContext_get_extensions, NULL},
+    {"info", (getter)MGLContext_get_info, NULL},
+    {"error", (getter)MGLContext_get_error, NULL},
     {},
 };
 
 PyGetSetDef MGLFramebuffer_getset[] = {
-    {"viewport", (getter)MGLFramebuffer_get_viewport, (setter)MGLFramebuffer_set_viewport, 0, 0},
-    {"scissor", (getter)MGLFramebuffer_get_scissor, (setter)MGLFramebuffer_set_scissor, 0, 0},
-    {"color_mask", (getter)MGLFramebuffer_get_color_mask, (setter)MGLFramebuffer_set_color_mask, 0, 0},
-    {"depth_mask", (getter)MGLFramebuffer_get_depth_mask, (setter)MGLFramebuffer_set_depth_mask, 0, 0},
-    {"bits", (getter)MGLFramebuffer_get_bits, 0, 0, 0},
+    {"viewport", (getter)MGLFramebuffer_get_viewport, (setter)MGLFramebuffer_set_viewport},
+    {"scissor", (getter)MGLFramebuffer_get_scissor, (setter)MGLFramebuffer_set_scissor},
+    {"color_mask", (getter)MGLFramebuffer_get_color_mask, (setter)MGLFramebuffer_set_color_mask},
+    {"depth_mask", (getter)MGLFramebuffer_get_depth_mask, (setter)MGLFramebuffer_set_depth_mask},
+    {"bits", (getter)MGLFramebuffer_get_bits, NULL},
     {},
 };
 
@@ -9290,9 +9181,9 @@ PyMethodDef MGLProgram_methods[] = {
 };
 
 PyGetSetDef MGLQuery_getset[] = {
-    {"samples", (getter)MGLQuery_get_samples, 0, 0, 0},
-    {"primitives", (getter)MGLQuery_get_primitives, 0, 0, 0},
-    {"elapsed", (getter)MGLQuery_get_elapsed, 0, 0, 0},
+    {"samples", (getter)MGLQuery_get_samples, NULL},
+    {"primitives", (getter)MGLQuery_get_primitives, NULL},
+    {"elapsed", (getter)MGLQuery_get_elapsed, NULL},
     {},
 };
 
@@ -9301,7 +9192,6 @@ PyMethodDef MGLQuery_methods[] = {
     {"end", (PyCFunction)MGLQuery_end, METH_NOARGS},
     {"begin_render", (PyCFunction)MGLQuery_begin_render, METH_NOARGS},
     {"end_render", (PyCFunction)MGLQuery_end_render, METH_NOARGS},
-    // {"release", (PyCFunction)MGLQuery_release, METH_NOARGS},
     {},
 };
 
@@ -9311,15 +9201,15 @@ PyMethodDef MGLRenderbuffer_methods[] = {
 };
 
 PyGetSetDef MGLSampler_getset[] = {
-    {"repeat_x", (getter)MGLSampler_get_repeat_x, (setter)MGLSampler_set_repeat_x, 0, 0},
-    {"repeat_y", (getter)MGLSampler_get_repeat_y, (setter)MGLSampler_set_repeat_y, 0, 0},
-    {"repeat_z", (getter)MGLSampler_get_repeat_z, (setter)MGLSampler_set_repeat_z, 0, 0},
-    {"filter", (getter)MGLSampler_get_filter, (setter)MGLSampler_set_filter, 0, 0},
-    {"compare_func", (getter)MGLSampler_get_compare_func, (setter)MGLSampler_set_compare_func, 0, 0},
-    {"anisotropy", (getter)MGLSampler_get_anisotropy, (setter)MGLSampler_set_anisotropy, 0, 0},
-    {"border_color", (getter)MGLSampler_get_border_color, (setter)MGLSampler_set_border_color, 0, 0},
-    {"min_lod", (getter)MGLSampler_get_min_lod, (setter)MGLSampler_set_min_lod, 0, 0},
-    {"max_lod", (getter)MGLSampler_get_max_lod, (setter)MGLSampler_set_max_lod, 0, 0},
+    {"repeat_x", (getter)MGLSampler_get_repeat_x, (setter)MGLSampler_set_repeat_x},
+    {"repeat_y", (getter)MGLSampler_get_repeat_y, (setter)MGLSampler_set_repeat_y},
+    {"repeat_z", (getter)MGLSampler_get_repeat_z, (setter)MGLSampler_set_repeat_z},
+    {"filter", (getter)MGLSampler_get_filter, (setter)MGLSampler_set_filter},
+    {"compare_func", (getter)MGLSampler_get_compare_func, (setter)MGLSampler_set_compare_func},
+    {"anisotropy", (getter)MGLSampler_get_anisotropy, (setter)MGLSampler_set_anisotropy},
+    {"border_color", (getter)MGLSampler_get_border_color, (setter)MGLSampler_set_border_color},
+    {"min_lod", (getter)MGLSampler_get_min_lod, (setter)MGLSampler_set_min_lod},
+    {"max_lod", (getter)MGLSampler_get_max_lod, (setter)MGLSampler_set_max_lod},
     {},
 };
 
@@ -9338,12 +9228,12 @@ PyMethodDef MGLScope_methods[] = {
 };
 
 PyGetSetDef MGLTexture_getset[] = {
-    {"repeat_x", (getter)MGLTexture_get_repeat_x, (setter)MGLTexture_set_repeat_x, 0, 0},
-    {"repeat_y", (getter)MGLTexture_get_repeat_y, (setter)MGLTexture_set_repeat_y, 0, 0},
-    {"filter", (getter)MGLTexture_get_filter, (setter)MGLTexture_set_filter, 0, 0},
-    {"swizzle", (getter)MGLTexture_get_swizzle, (setter)MGLTexture_set_swizzle, 0, 0},
-    {"compare_func", (getter)MGLTexture_get_compare_func, (setter)MGLTexture_set_compare_func, 0, 0},
-    {"anisotropy", (getter)MGLTexture_get_anisotropy, (setter)MGLTexture_set_anisotropy, 0, 0},
+    {"repeat_x", (getter)MGLTexture_get_repeat_x, (setter)MGLTexture_set_repeat_x},
+    {"repeat_y", (getter)MGLTexture_get_repeat_y, (setter)MGLTexture_set_repeat_y},
+    {"filter", (getter)MGLTexture_get_filter, (setter)MGLTexture_set_filter},
+    {"swizzle", (getter)MGLTexture_get_swizzle, (setter)MGLTexture_set_swizzle},
+    {"compare_func", (getter)MGLTexture_get_compare_func, (setter)MGLTexture_set_compare_func},
+    {"anisotropy", (getter)MGLTexture_get_anisotropy, (setter)MGLTexture_set_anisotropy},
     {},
 };
 
@@ -9359,11 +9249,11 @@ PyMethodDef MGLTexture_methods[] = {
 };
 
 PyGetSetDef MGLTexture3D_getset[] = {
-    {"repeat_x", (getter)MGLTexture3D_get_repeat_x, (setter)MGLTexture3D_set_repeat_x, 0, 0},
-    {"repeat_y", (getter)MGLTexture3D_get_repeat_y, (setter)MGLTexture3D_set_repeat_y, 0, 0},
-    {"repeat_z", (getter)MGLTexture3D_get_repeat_z, (setter)MGLTexture3D_set_repeat_z, 0, 0},
-    {"filter", (getter)MGLTexture3D_get_filter, (setter)MGLTexture3D_set_filter, 0, 0},
-    {"swizzle", (getter)MGLTexture3D_get_swizzle, (setter)MGLTexture3D_set_swizzle, 0, 0},
+    {"repeat_x", (getter)MGLTexture3D_get_repeat_x, (setter)MGLTexture3D_set_repeat_x},
+    {"repeat_y", (getter)MGLTexture3D_get_repeat_y, (setter)MGLTexture3D_set_repeat_y},
+    {"repeat_z", (getter)MGLTexture3D_get_repeat_z, (setter)MGLTexture3D_set_repeat_z},
+    {"filter", (getter)MGLTexture3D_get_filter, (setter)MGLTexture3D_set_filter},
+    {"swizzle", (getter)MGLTexture3D_get_swizzle, (setter)MGLTexture3D_set_swizzle},
     {},
 };
 
@@ -9379,11 +9269,11 @@ PyMethodDef MGLTexture3D_methods[] = {
 };
 
 PyGetSetDef MGLTextureArray_getset[] = {
-    {"repeat_x", (getter)MGLTextureArray_get_repeat_x, (setter)MGLTextureArray_set_repeat_x, 0, 0},
-    {"repeat_y", (getter)MGLTextureArray_get_repeat_y, (setter)MGLTextureArray_set_repeat_y, 0, 0},
-    {"filter", (getter)MGLTextureArray_get_filter, (setter)MGLTextureArray_set_filter, 0, 0},
-    {"swizzle", (getter)MGLTextureArray_get_swizzle, (setter)MGLTextureArray_set_swizzle, 0, 0},
-    {"anisotropy", (getter)MGLTextureArray_get_anisotropy, (setter)MGLTextureArray_set_anisotropy, 0, 0},
+    {"repeat_x", (getter)MGLTextureArray_get_repeat_x, (setter)MGLTextureArray_set_repeat_x},
+    {"repeat_y", (getter)MGLTextureArray_get_repeat_y, (setter)MGLTextureArray_set_repeat_y},
+    {"filter", (getter)MGLTextureArray_get_filter, (setter)MGLTextureArray_set_filter},
+    {"swizzle", (getter)MGLTextureArray_get_swizzle, (setter)MGLTextureArray_set_swizzle},
+    {"anisotropy", (getter)MGLTextureArray_get_anisotropy, (setter)MGLTextureArray_set_anisotropy},
     {},
 };
 
@@ -9399,9 +9289,9 @@ PyMethodDef MGLTextureArray_methods[] = {
 };
 
 PyGetSetDef MGLTextureCube_getset[] = {
-    {"filter", (getter)MGLTextureCube_get_filter, (setter)MGLTextureCube_set_filter, 0, 0},
-    {"swizzle", (getter)MGLTextureCube_get_swizzle, (setter)MGLTextureCube_set_swizzle, 0, 0},
-    {"anisotropy", (getter)MGLTextureCube_get_anisotropy, (setter)MGLTextureCube_set_anisotropy, 0, 0},
+    {"filter", (getter)MGLTextureCube_get_filter, (setter)MGLTextureCube_set_filter},
+    {"swizzle", (getter)MGLTextureCube_get_swizzle, (setter)MGLTextureCube_set_swizzle},
+    {"anisotropy", (getter)MGLTextureCube_get_anisotropy, (setter)MGLTextureCube_set_anisotropy},
     {},
 };
 
@@ -9425,10 +9315,10 @@ PyMethodDef MGLVertexArray_methods[] = {
 };
 
 PyGetSetDef MGLVertexArray_getset[] = {
-    {"index_buffer", 0, (setter)MGLVertexArray_set_index_buffer, 0, 0},
-    {"vertices", (getter)MGLVertexArray_get_vertices, (setter)MGLVertexArray_set_vertices, 0, 0},
-    {"instances", (getter)MGLVertexArray_get_instances, (setter)MGLVertexArray_set_instances, 0, 0},
-    {"subroutines", 0, (setter)MGLVertexArray_set_subroutines, 0, 0},
+    {"index_buffer", NULL, (setter)MGLVertexArray_set_index_buffer},
+    {"vertices", (getter)MGLVertexArray_get_vertices, (setter)MGLVertexArray_set_vertices},
+    {"instances", (getter)MGLVertexArray_get_instances, (setter)MGLVertexArray_set_instances},
+    {"subroutines", NULL, (setter)MGLVertexArray_set_subroutines},
     {},
 };
 
@@ -9544,7 +9434,7 @@ PyType_Spec MGLTexture3D_spec = {"mgl.Texture3D", sizeof(MGLTexture3D), 0, Py_TP
 PyType_Spec MGLVertexArray_spec = {"mgl.VertexArray", sizeof(MGLVertexArray), 0, Py_TPFLAGS_DEFAULT, MGLVertexArray_slots};
 PyType_Spec MGLSampler_spec = {"mgl.Sampler", sizeof(MGLSampler), 0, Py_TPFLAGS_DEFAULT, MGLSampler_slots};
 
-PyModuleDef MGL_moduledef = {PyModuleDef_HEAD_INIT, "mgl", 0, -1, module_methods, 0, 0, 0, 0};
+PyModuleDef MGL_moduledef = {PyModuleDef_HEAD_INIT, "mgl", NULL, -1, module_methods};
 
 extern "C" PyObject * PyInit_mgl() {
     PyObject * module = PyModule_Create(&MGL_moduledef);
