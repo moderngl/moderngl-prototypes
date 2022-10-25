@@ -726,3 +726,21 @@ def set_color_mask(value, mem):
         mem[i * 4 + 1] = 1 if g else 0
         mem[i * 4 + 2] = 1 if b else 0
         mem[i * 4 + 3] = 1 if a else 0
+
+
+def parse_viewport(value, mem):
+    if value is None:
+        return
+
+    if len(value) == 2:
+        x, y = 0, 0
+        w, h = value
+    elif len(value) == 4:
+        x, y, w, h = value
+    else:
+        raise Error(f'invlid viewport {value}')
+
+    if w < 0 or h < 0:
+        raise Error(f'invlid viewport {value}')
+
+    struct.pack_into('4i', mem, 0, x, y, w, h)

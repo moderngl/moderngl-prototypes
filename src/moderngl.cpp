@@ -3173,6 +3173,13 @@ PyObject * MGLFramebuffer_release(MGLFramebuffer * self) {
     Py_RETURN_NONE;
 }
 
+void set_color_mask(MGLContext * context, bool * color_mask, int count) {
+    const GLMethods & gl = context->gl;
+    for (int i = 0; i < count; ++i) {
+        gl.ColorMaski(i, color_mask[i * 4 + 0], color_mask[i * 4 + 1], color_mask[i * 4 + 2], color_mask[i * 4 + 3]);
+    }
+}
+
 PyObject * MGLFramebuffer_clear(MGLFramebuffer * self, PyObject * args) {
     float r, g, b, a, depth;
     PyObject * viewport;
@@ -3230,16 +3237,7 @@ PyObject * MGLFramebuffer_clear(MGLFramebuffer * self, PyObject * args) {
     gl.ClearColor(r, g, b, a);
     gl.ClearDepth(depth);
 
-    for (int i = 0; i < self->draw_buffers_len; ++i) {
-        gl.ColorMaski(
-            i,
-            self->color_mask[i * 4 + 0],
-            self->color_mask[i * 4 + 1],
-            self->color_mask[i * 4 + 2],
-            self->color_mask[i * 4 + 3]
-        );
-    }
-
+    set_color_mask(self->context, self->color_mask, self->draw_buffers_len);
     gl.DepthMask(self->depth_mask);
 
     // Respect the passed in viewport even with scissor enabled
@@ -3284,107 +3282,33 @@ PyObject * MGLFramebuffer_use(MGLFramebuffer * self) {
     }
 
     if (self->viewport_width && self->viewport_height) {
-        gl.Viewport(
-            self->viewport_x,
-            self->viewport_y,
-            self->viewport_width,
-            self->viewport_height
-        );
+        gl.Viewport(self->viewport_x, self->viewport_y, self->viewport_width, self->viewport_height);
     }
 
     if (self->scissor_enabled) {
         gl.Enable(GL_SCISSOR_TEST);
-        gl.Scissor(
-            self->scissor_x, self->scissor_y,
-            self->scissor_width, self->scissor_height
-        );
+        gl.Scissor(self->scissor_x, self->scissor_y, self->scissor_width, self->scissor_height);
     } else {
         gl.Disable(GL_SCISSOR_TEST);
     }
 
-    for (int i = 0; i < self->draw_buffers_len; ++i) {
-        gl.ColorMaski(
-            i,
-            self->color_mask[i * 4 + 0],
-            self->color_mask[i * 4 + 1],
-            self->color_mask[i * 4 + 2],
-            self->color_mask[i * 4 + 3]
-        );
-    }
-
+    set_color_mask(self->context, self->color_mask, self->draw_buffers_len);
     gl.DepthMask(self->depth_mask);
 
     Py_INCREF(self);
     Py_DECREF(self->context->bound_framebuffer);
     self->context->bound_framebuffer = self;
-
     Py_RETURN_NONE;
 }
 
-PyObject * MGLFramebuffer_read(MGLFramebuffer * self, PyObject * args) {
-    PyObject * viewport;
-    int components;
-    int alignment;
-    int attachment;
-    int clamp;
+int expected_image_size(int width, int height, int alignment, int components, int pixel_size) {
+    int expected_size = width * components * pixel_size;
+    expected_size = (expected_size + alignment - 1) / alignment * alignment;
+    expected_size = expected_size * height;
+    return expected_size;
+}
 
-    const char * dtype;
-    Py_ssize_t dtype_size;
-
-    int args_ok = PyArg_ParseTuple(args, "OIIIps#", &viewport, &components, &attachment, &alignment, &clamp, &dtype, &dtype_size);
-    if (!args_ok) {
-        return 0;
-    }
-
-    if (alignment != 1 && alignment != 2 && alignment != 4 && alignment != 8) {
-        MGLError_Set("the alignment must be 1, 2, 4 or 8");
-        return 0;
-    }
-
-    MGLDataType * data_type = from_dtype(dtype, dtype_size);
-
-    if (!data_type) {
-        MGLError_Set("invalid dtype");
-        return 0;
-    }
-
-    int x = 0;
-    int y = 0;
-    int width = self->width;
-    int height = self->height;
-
-    if (viewport != Py_None) {
-        if (Py_TYPE(viewport) != &PyTuple_Type) {
-            MGLError_Set("the viewport must be a tuple not %s", Py_TYPE(viewport)->tp_name);
-            return 0;
-        }
-
-        if (PyTuple_GET_SIZE(viewport) == 4) {
-
-            x = PyLong_AsLong(PyTuple_GET_ITEM(viewport, 0));
-            y = PyLong_AsLong(PyTuple_GET_ITEM(viewport, 1));
-            width = PyLong_AsLong(PyTuple_GET_ITEM(viewport, 2));
-            height = PyLong_AsLong(PyTuple_GET_ITEM(viewport, 3));
-
-        } else if (PyTuple_GET_SIZE(viewport) == 2) {
-
-            width = PyLong_AsLong(PyTuple_GET_ITEM(viewport, 0));
-            height = PyLong_AsLong(PyTuple_GET_ITEM(viewport, 1));
-
-        } else {
-
-            MGLError_Set("the viewport size %d is invalid", PyTuple_GET_SIZE(viewport));
-            return 0;
-
-        }
-
-        if (PyErr_Occurred()) {
-            MGLError_Set("wrong values in the viewport");
-            return 0;
-        }
-
-    }
-
+void read_framebuffer(MGLFramebuffer * self, int * viewport, int components, int alignment, int attachment, int clamp, MGLDataType * data_type, char * data) {
     bool read_depth = false;
 
     if (attachment == -1) {
@@ -3392,15 +3316,8 @@ PyObject * MGLFramebuffer_read(MGLFramebuffer * self, PyObject * args) {
         read_depth = true;
     }
 
-    int expected_size = width * components * data_type->size;
-    expected_size = (expected_size + alignment - 1) / alignment * alignment;
-    expected_size = expected_size * height;
-
     int pixel_type = data_type->gl_type;
     int base_format = read_depth ? GL_DEPTH_COMPONENT : data_type->base_format[components];
-
-    PyObject * result = PyBytes_FromStringAndSize(0, expected_size);
-    char * data = PyBytes_AS_STRING(result);
 
     const GLMethods & gl = self->context->gl;
 
@@ -3411,18 +3328,52 @@ PyObject * MGLFramebuffer_read(MGLFramebuffer * self, PyObject * args) {
     }
 
     gl.BindFramebuffer(GL_FRAMEBUFFER, self->framebuffer_obj);
-    // if (self->framebuffer_obj) {
     gl.ReadBuffer(read_depth ? GL_NONE : (GL_COLOR_ATTACHMENT0 + attachment));
-    // } else {
-    // gl.ReadBuffer(GL_BACK_LEFT);
-    // gl.ReadBuffer(self->draw_buffers[0]);
-    // }
     gl.PixelStorei(GL_PACK_ALIGNMENT, alignment);
     gl.PixelStorei(GL_UNPACK_ALIGNMENT, alignment);
-    gl.ReadPixels(x, y, width, height, base_format, pixel_type, data);
+    gl.ReadPixels(viewport[0], viewport[1], viewport[2], viewport[3], base_format, pixel_type, data);
     gl.BindFramebuffer(GL_FRAMEBUFFER, self->context->bound_framebuffer->framebuffer_obj);
+}
 
-    return result;
+int parse_viewport(PyObject * arg, int * viewport) {
+    PyObject * mem = PyMemoryView_FromMemory((char *)viewport, 16, PyBUF_WRITE);
+    Py_XDECREF(PyObject_CallMethod(helper, "parse_viewport", "(ON)", arg, mem));
+    return !PyErr_Occurred();
+}
+
+int parse_dtype(PyObject * arg, MGLDataType ** dtype) {
+    if (!PyUnicode_CheckExact(arg)) {
+        MGLError_Set("invalid dtype");
+        return 0;
+    }
+    *dtype = from_dtype(PyUnicode_AsUTF8(arg), strlen(PyUnicode_AsUTF8(arg)));
+    if (!*dtype) {
+        MGLError_Set("invalid dtype");
+        return 0;
+    }
+    return 1;
+}
+
+PyObject * MGLFramebuffer_read(MGLFramebuffer * self, PyObject * args) {
+    int viewport[4] = {0, 0, self->width, self->height};
+    int components;
+    int alignment;
+    int attachment;
+    int clamp;
+    MGLDataType * dtype;
+
+    if (!PyArg_ParseTuple(args, "O&IIIpO&", parse_viewport, viewport, &components, &attachment, &alignment, &clamp, parse_dtype, &dtype)) {
+        return NULL;
+    }
+
+    if (alignment != 1 && alignment != 2 && alignment != 4 && alignment != 8) {
+        MGLError_Set("the alignment must be 1, 2, 4 or 8");
+        return NULL;
+    }
+
+    PyObject * res = PyBytes_FromStringAndSize(NULL, expected_image_size(viewport[2], viewport[3], alignment, components, dtype->size));
+    read_framebuffer(self, viewport, components, alignment, attachment, clamp, dtype, PyBytes_AsString(res));
+    return res;
 }
 
 PyObject * MGLFramebuffer_read_into(MGLFramebuffer * self, PyObject * args) {
@@ -3435,18 +3386,7 @@ PyObject * MGLFramebuffer_read_into(MGLFramebuffer * self, PyObject * args) {
     Py_ssize_t dtype_size;
     Py_ssize_t write_offset;
 
-    int args_ok = PyArg_ParseTuple(
-        args,
-        "OOIIIs#n",
-        &data,
-        &viewport,
-        &components,
-        &attachment,
-        &alignment,
-        &dtype,
-        &dtype_size,
-        &write_offset
-    );
+    int args_ok = PyArg_ParseTuple( args, "OOIIIs#n", &data, &viewport, &components, &attachment, &alignment, &dtype, &dtype_size, &write_offset );
 
     if (!args_ok) {
         return 0;
@@ -3680,16 +3620,7 @@ int MGLFramebuffer_set_color_mask(MGLFramebuffer * self, PyObject * value) {
     }
 
     if (self->framebuffer_obj == self->context->bound_framebuffer->framebuffer_obj) {
-        const GLMethods & gl = self->context->gl;
-        for (int i = 0; i < self->draw_buffers_len; ++i) {
-            gl.ColorMaski(
-                i,
-                self->color_mask[i * 4 + 0],
-                self->color_mask[i * 4 + 1],
-                self->color_mask[i * 4 + 2],
-                self->color_mask[i * 4 + 3]
-            );
-        }
+        set_color_mask(self->context, self->color_mask, self->draw_buffers_len);
     }
 
     return 0;
