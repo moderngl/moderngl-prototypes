@@ -1,3 +1,4 @@
+import re
 import warnings
 from collections import deque
 from typing import Any, Deque, Dict, List, Optional, Set, Tuple, Union
@@ -7,13 +8,6 @@ from .compute_shader import ComputeShader
 from .conditional_render import ConditionalRender
 from .framebuffer import Framebuffer
 from .program import Program, detect_format
-from .program_members import (
-    Attribute,
-    Subroutine,
-    Uniform,
-    UniformBlock,
-    Varying,
-)
 from .query import Query
 from .renderbuffer import Renderbuffer
 from .sampler import Sampler
@@ -1151,7 +1145,8 @@ class Context:
             :py:class:`Buffer` object
         """
         if type(reserve) is str:
-            reserve = mgl.strsize(reserve)
+            match = re.match(r'^(\d+)(?:(K|M|G)?B)?', reserve)
+            reserve = int(match.group(1)) * 2 ** {'K': 10, 'M': 20, 'G': 30}.get(match.group(2), 1)
 
         res = Buffer.__new__(Buffer)
         res.mglo, res._size, res._glo = self.mglo.buffer(data, reserve, dynamic)

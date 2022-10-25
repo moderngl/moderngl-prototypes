@@ -8222,56 +8222,6 @@ inline void MGLVertexArray_SET_SUBROUTINES(MGLVertexArray * self, const GLMethod
     }
 }
 
-PyObject * strsize(PyObject * self, PyObject * args) {
-    const char * str;
-
-    if (!PyArg_ParseTuple(args, "s", &str)) {
-        return 0;
-    }
-
-    char first_chr = *str++;
-    if (first_chr < '1' || first_chr > '9') {
-        return 0;
-    }
-
-    long long value = first_chr - '0';
-
-    while (char chr = *str++) {
-        if (chr < '0' || chr > '9') {
-            switch (chr) {
-                case 'G':
-                    value *= 1024;
-
-                case 'M':
-                    value *= 1024;
-
-                case 'K':
-                    value *= 1024;
-
-                    if (*str++ != 'B') {
-                        return 0;
-                    }
-
-                case 'B':
-                    if (*str++) {
-                        return 0;
-                    }
-
-                case 0:
-                    break;
-
-                default:
-                    return 0;
-            }
-            break;
-        }
-
-        value = value * 10 + chr - '0';
-    }
-
-    return PyLong_FromLongLong(value);
-}
-
 PyObject * fmtdebug(PyObject * self, PyObject * args) {
     const char * str;
 
@@ -8530,7 +8480,6 @@ void default_dealloc(PyObject * self) {
 }
 
 PyMethodDef module_methods[] = {
-    {"strsize", (PyCFunction)strsize, METH_VARARGS},
     {"create_context", (PyCFunction)create_context, METH_VARARGS | METH_KEYWORDS},
     {"fmtdebug", (PyCFunction)fmtdebug, METH_VARARGS},
     {},
