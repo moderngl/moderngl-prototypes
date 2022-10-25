@@ -714,3 +714,15 @@ def compare_func_from_str(value):
 
 def compare_func_to_str(value):
     return COMPARE_FUNC_TO_STR.get(value, '?')
+
+
+def set_color_mask(value, mem):
+    attachments = len(mem) // 4
+    if attachments == 1:
+        value = [value]
+
+    for i, (r, g, b, a) in enumerate(value):
+        mem[i * 4 + 0] = 1 if r else 0
+        mem[i * 4 + 1] = 1 if g else 0
+        mem[i * 4 + 2] = 1 if b else 0
+        mem[i * 4 + 3] = 1 if a else 0
