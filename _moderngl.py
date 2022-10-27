@@ -744,3 +744,7 @@ def parse_viewport(value, mem):
         raise Error(f'invlid viewport {value}')
 
     struct.pack_into('4i', mem, 0, x, y, w, h)
+
+
+class InvalidObject:
+    pass
