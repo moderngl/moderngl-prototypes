@@ -305,6 +305,7 @@ class Framebuffer:
         attachment: int = 0,
         alignment: int = 1,
         dtype: str = 'f1',
+        clamp: bool = False,
         write_offset: int = 0,
     ) -> None:
         """
@@ -323,8 +324,9 @@ class Framebuffer:
         """
         if type(buffer) is Buffer:
             buffer = buffer.mglo
+            raise NotImplementedError
 
-        return self.mglo.read_into(buffer, viewport, components, attachment, alignment, dtype, write_offset)
+        memoryview(buffer)[write_offset:] = self.mglo.read(viewport, components, attachment, alignment, clamp, dtype)
 
     def release(self) -> None:
         """Release the ModernGL object."""

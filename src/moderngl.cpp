@@ -3356,10 +3356,7 @@ int parse_dtype(PyObject * arg, MGLDataType ** dtype) {
 
 PyObject * MGLFramebuffer_read(MGLFramebuffer * self, PyObject * args) {
     int viewport[4] = {0, 0, self->width, self->height};
-    int components;
-    int alignment;
-    int attachment;
-    int clamp;
+    int components, alignment, attachment, clamp;
     MGLDataType * dtype;
 
     if (!PyArg_ParseTuple(args, "O&IIIpO&", parse_viewport, viewport, &components, &attachment, &alignment, &clamp, parse_dtype, &dtype)) {
@@ -3371,136 +3368,10 @@ PyObject * MGLFramebuffer_read(MGLFramebuffer * self, PyObject * args) {
         return NULL;
     }
 
-    PyObject * res = PyBytes_FromStringAndSize(NULL, expected_image_size(viewport[2], viewport[3], alignment, components, dtype->size));
+    int expected_size = expected_image_size(viewport[2], viewport[3], alignment, components, dtype->size);
+    PyObject * res = PyBytes_FromStringAndSize(NULL, expected_size);
     read_framebuffer(self, viewport, components, alignment, attachment, clamp, dtype, PyBytes_AsString(res));
     return res;
-}
-
-PyObject * MGLFramebuffer_read_into(MGLFramebuffer * self, PyObject * args) {
-    PyObject * data;
-    PyObject * viewport;
-    int components;
-    int attachment;
-    int alignment;
-    const char * dtype;
-    Py_ssize_t dtype_size;
-    Py_ssize_t write_offset;
-
-    int args_ok = PyArg_ParseTuple( args, "OOIIIs#n", &data, &viewport, &components, &attachment, &alignment, &dtype, &dtype_size, &write_offset );
-
-    if (!args_ok) {
-        return 0;
-    }
-
-    if (alignment != 1 && alignment != 2 && alignment != 4 && alignment != 8) {
-        MGLError_Set("the alignment must be 1, 2, 4 or 8");
-        return 0;
-    }
-
-    MGLDataType * data_type = from_dtype(dtype, dtype_size);
-
-    if (!data_type) {
-        MGLError_Set("invalid dtype");
-        return 0;
-    }
-
-    int x = 0;
-    int y = 0;
-    int width = self->width;
-    int height = self->height;
-
-    if (viewport != Py_None) {
-        if (Py_TYPE(viewport) != &PyTuple_Type) {
-            MGLError_Set("the viewport must be a tuple not %s", Py_TYPE(viewport)->tp_name);
-            return 0;
-        }
-
-        if (PyTuple_GET_SIZE(viewport) == 4) {
-
-            x = PyLong_AsLong(PyTuple_GET_ITEM(viewport, 0));
-            y = PyLong_AsLong(PyTuple_GET_ITEM(viewport, 1));
-            width = PyLong_AsLong(PyTuple_GET_ITEM(viewport, 2));
-            height = PyLong_AsLong(PyTuple_GET_ITEM(viewport, 3));
-
-        } else if (PyTuple_GET_SIZE(viewport) == 2) {
-
-            width = PyLong_AsLong(PyTuple_GET_ITEM(viewport, 0));
-            height = PyLong_AsLong(PyTuple_GET_ITEM(viewport, 1));
-
-        } else {
-
-            MGLError_Set("the viewport size %d is invalid", PyTuple_GET_SIZE(viewport));
-            return 0;
-
-        }
-
-        if (PyErr_Occurred()) {
-            MGLError_Set("wrong values in the viewport");
-            return 0;
-        }
-
-    }
-
-    bool read_depth = false;
-
-    if (attachment == -1) {
-        components = 1;
-        read_depth = true;
-    }
-
-    int expected_size = width * components * data_type->size;
-    expected_size = (expected_size + alignment - 1) / alignment * alignment;
-    expected_size = expected_size * height;
-
-    int pixel_type = data_type->gl_type;
-    int base_format = read_depth ? GL_DEPTH_COMPONENT : data_type->base_format[components];
-
-    if (Py_TYPE(data) == MGLBuffer_type) {
-
-        MGLBuffer * buffer = (MGLBuffer *)data;
-
-        const GLMethods & gl = self->context->gl;
-
-        gl.BindBuffer(GL_PIXEL_PACK_BUFFER, buffer->buffer_obj);
-        gl.BindFramebuffer(GL_FRAMEBUFFER, self->framebuffer_obj);
-        gl.ReadBuffer(read_depth ? GL_NONE : (GL_COLOR_ATTACHMENT0 + attachment));
-        gl.PixelStorei(GL_PACK_ALIGNMENT, alignment);
-        gl.PixelStorei(GL_UNPACK_ALIGNMENT, alignment);
-        gl.ReadPixels(x, y, width, height, base_format, pixel_type, (void *)write_offset);
-        gl.BindFramebuffer(GL_FRAMEBUFFER, self->context->bound_framebuffer->framebuffer_obj);
-        gl.BindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-
-    } else {
-
-        Py_buffer buffer_view;
-
-        int get_buffer = PyObject_GetBuffer(data, &buffer_view, PyBUF_WRITABLE);
-        if (get_buffer < 0) {
-            // Propagate the default error
-            return 0;
-        }
-
-        if (buffer_view.len < write_offset + expected_size) {
-            MGLError_Set("the buffer is too small");
-            PyBuffer_Release(&buffer_view);
-            return 0;
-        }
-
-        char * ptr = (char *)buffer_view.buf + write_offset;
-
-        const GLMethods & gl = self->context->gl;
-
-        gl.BindFramebuffer(GL_FRAMEBUFFER, self->framebuffer_obj);
-        gl.ReadBuffer(read_depth ? GL_NONE : (GL_COLOR_ATTACHMENT0 + attachment));
-        gl.PixelStorei(GL_PACK_ALIGNMENT, alignment);
-        gl.PixelStorei(GL_UNPACK_ALIGNMENT, alignment);
-        gl.ReadPixels(x, y, width, height, base_format, pixel_type, ptr);
-        gl.BindFramebuffer(GL_FRAMEBUFFER, self->context->bound_framebuffer->framebuffer_obj);
-
-        PyBuffer_Release(&buffer_view);
-    }
-
-    return PyLong_FromLong(expected_size);
 }
 
 PyObject * MGLFramebuffer_get_viewport(MGLFramebuffer * self) {
@@ -8513,7 +8384,6 @@ PyMethodDef MGLFramebuffer_methods[] = {
     {"clear", (PyCFunction)MGLFramebuffer_clear, METH_VARARGS},
     {"use", (PyCFunction)MGLFramebuffer_use, METH_NOARGS},
     {"read", (PyCFunction)MGLFramebuffer_read, METH_VARARGS},
-    {"read_into", (PyCFunction)MGLFramebuffer_read_into, METH_VARARGS},
     {"release", (PyCFunction)MGLFramebuffer_release, METH_NOARGS},
     {},
 };
