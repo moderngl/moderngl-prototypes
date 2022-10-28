@@ -9,8 +9,8 @@ from setuptools import Extension, setup
 
 # pylint: disable=C0103, W0212
 
-if sys.version_info < (3, 6):
-    raise Exception('Python 3.6 or higher is required')
+if sys.version_info < (3, 7):
+    raise Exception('Python 3.7 or higher is required')
 
 PLATFORMS = {'windows', 'linux', 'darwin', 'cygwin', 'android'}
 
@@ -126,7 +126,7 @@ project_urls = {
 
 setup(
     name='moderngl',
-    version='5.7.0',
+    version='5.7.1',
     description=short_description,
     long_description=long_description,
     long_description_content_type='text/markdown',
