@@ -3,7 +3,7 @@ import warnings
 from collections import deque
 from typing import Any, Deque, Dict, List, Optional, Set, Tuple, Union
 
-from _moderngl import InvalidObject
+from _moderngl import InvalidObject, Error
 
 from .buffer import Buffer
 from .compute_shader import ComputeShader
@@ -1126,13 +1126,7 @@ class Context:
         res.extra = None
         return res
 
-    def buffer(
-        self,
-        data: Optional[Any] = None,
-        *,
-        reserve: int = 0,
-        dynamic: bool = False,
-    ) -> Buffer:
+    def buffer(self, data: Optional[Any] = None, *, reserve: int = 0, dynamic: bool = False) -> Buffer:
         """
         Create a :py:class:`Buffer` object.
 
@@ -1150,11 +1144,23 @@ class Context:
             match = re.match(r'^(\d+)(?:(K|M|G)?B)?', reserve)
             reserve = int(match.group(1)) * 2 ** {'K': 10, 'M': 20, 'G': 30}.get(match.group(2), 1)
 
+        if data is not None and reserve != 0:
+            raise Error('data and reserve are mutually exclusive')
+
+        if data is not None:
+            if not isinstance(data, (bytes, bytearray)):
+                data = bytes(data)
+            reserve = len(data)
+
         res = Buffer.__new__(Buffer)
-        res.mglo, res._size, res._glo = self.mglo.buffer(data, reserve, dynamic)
+        res.mglo, res._size, res._glo = self.mglo.buffer(reserve, dynamic)
         res._dynamic = dynamic
         res.ctx = self
         res.extra = None
+
+        if data is not None:
+            res.mglo.write(data, 0)
+
         return res
 
     def external_texture(

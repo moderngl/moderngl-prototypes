@@ -432,79 +432,41 @@ MGLDataType * from_dtype(const char * dtype, Py_ssize_t size) {
 }
 
 PyObject * MGLContext_buffer(MGLContext * self, PyObject * args) {
-    PyObject * data;
-    int reserve;
+    int size;
     int dynamic;
 
-    if (!PyArg_ParseTuple(args, "OIp", &data, &reserve, &dynamic)) {
-        return 0;
+    if (!PyArg_ParseTuple(args, "Ip", &size, &dynamic)) {
+        return NULL;
     }
-
-    if (data == Py_None && !reserve) {
-        MGLError_Set("missing data or reserve");
-        return 0;
-    }
-
-    if (data != Py_None && reserve) {
-        MGLError_Set("data and reserve are mutually exclusive");
-        return 0;
-    }
-
-    Py_buffer buffer_view;
-
-    if (data != Py_None) {
-        int get_buffer = PyObject_GetBuffer(data, &buffer_view, PyBUF_SIMPLE);
-        if (get_buffer < 0) {
-            // Propagate the default error
-            return 0;
-        }
-    } else {
-        buffer_view.len = reserve;
-        buffer_view.buf = 0;
-    }
-
-    if (!buffer_view.len) {
-        if (data != Py_None) {
-            PyBuffer_Release(&buffer_view);
-        }
-        MGLError_Set("the buffer cannot be empty");
-        return 0;
-    }
-
-    MGLBuffer * buffer = PyObject_New(MGLBuffer, MGLBuffer_type);
-    buffer->released = false;
-
-    buffer->size = (int)buffer_view.len;
-    buffer->dynamic = dynamic ? true : false;
 
     const GLMethods & gl = self->gl;
 
-    buffer->buffer_obj = 0;
-    gl.GenBuffers(1, (GLuint *)&buffer->buffer_obj);
-
-    if (!buffer->buffer_obj) {
+    int buffer_obj = 0;
+    gl.GenBuffers(1, (GLuint *)&buffer_obj);
+    if (!buffer_obj) {
         MGLError_Set("cannot create buffer");
-        Py_DECREF(buffer);
-        return 0;
+        return NULL;
     }
 
-    gl.BindBuffer(GL_ARRAY_BUFFER, buffer->buffer_obj);
-    gl.BufferData(GL_ARRAY_BUFFER, buffer->size, buffer_view.buf, dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+    MGLBuffer * res = PyObject_New(MGLBuffer, MGLBuffer_type);
+    res->released = false;
+    res->size = size;
+    res->dynamic = !!dynamic;
+    res->buffer_obj = buffer_obj;
+
+    gl.BindBuffer(GL_ARRAY_BUFFER, buffer_obj);
+    gl.BufferData(GL_ARRAY_BUFFER, size, NULL, dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
 
     Py_INCREF(self);
-    buffer->context = self;
+    res->context = self;
 
-    if (data != Py_None) {
-        PyBuffer_Release(&buffer_view);
-    }
+    Py_INCREF(res);
 
-    Py_INCREF(buffer);
-
-    PyObject * result = PyTuple_New(3);
-    PyTuple_SET_ITEM(result, 0, (PyObject *)buffer);
-    PyTuple_SET_ITEM(result, 1, PyLong_FromSsize_t(buffer->size));
-    PyTuple_SET_ITEM(result, 2, PyLong_FromLong(buffer->buffer_obj));
-    return result;
+    PyObject * tmp = PyTuple_New(3);
+    PyTuple_SET_ITEM(tmp, 0, (PyObject *)res);
+    PyTuple_SET_ITEM(tmp, 1, PyLong_FromSsize_t(res->size));
+    PyTuple_SET_ITEM(tmp, 2, PyLong_FromLong(res->buffer_obj));
+    return tmp;
 }
 
 PyObject * MGLBuffer_write(MGLBuffer * self, PyObject * args) {
