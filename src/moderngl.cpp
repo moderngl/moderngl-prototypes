@@ -5273,92 +5273,6 @@ PyObject * MGLTexture_read(MGLTexture * self, PyObject * args) {
     return res;
 }
 
-PyObject * MGLTexture_read_into(MGLTexture * self, PyObject * args) {
-    PyObject * data;
-    int level;
-    int alignment;
-    Py_ssize_t write_offset;
-
-    int args_ok = PyArg_ParseTuple(args, "OIIn", &data, &level, &alignment, &write_offset);
-    if (!args_ok) {
-        return 0;
-    }
-
-    if (alignment != 1 && alignment != 2 && alignment != 4 && alignment != 8) {
-        MGLError_Set("the alignment must be 1, 2, 4 or 8");
-        return 0;
-    }
-
-    if (level > self->max_level) {
-        MGLError_Set("invalid level");
-        return 0;
-    }
-
-    if (self->samples) {
-        MGLError_Set("multisample textures cannot be read directly");
-        return 0;
-    }
-
-    int width = self->width / (1 << level);
-    int height = self->height / (1 << level);
-
-    width = width > 1 ? width : 1;
-    height = height > 1 ? height : 1;
-
-    int expected_size = width * self->components * self->data_type->size;
-    expected_size = (expected_size + alignment - 1) / alignment * alignment;
-    expected_size = expected_size * height;
-
-    int pixel_type = self->data_type->gl_type;
-    int base_format = self->depth ? GL_DEPTH_COMPONENT : self->data_type->base_format[self->components];
-
-    if (Py_TYPE(data) == MGLBuffer_type) {
-
-        MGLBuffer * buffer = (MGLBuffer *)data;
-
-        const GLMethods & gl = self->context->gl;
-
-        gl.BindBuffer(GL_PIXEL_PACK_BUFFER, buffer->buffer_obj);
-        gl.ActiveTexture(GL_TEXTURE0 + self->context->default_texture_unit);
-        gl.BindTexture(GL_TEXTURE_2D, self->texture_obj);
-        gl.PixelStorei(GL_PACK_ALIGNMENT, alignment);
-        gl.PixelStorei(GL_UNPACK_ALIGNMENT, alignment);
-        gl.GetTexImage(GL_TEXTURE_2D, level, base_format, pixel_type, (void *)write_offset);
-        gl.BindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-
-    } else {
-
-        Py_buffer buffer_view;
-
-        int get_buffer = PyObject_GetBuffer(data, &buffer_view, PyBUF_WRITABLE);
-        if (get_buffer < 0) {
-            // Propagate the default error
-            return 0;
-        }
-
-        if (buffer_view.len < write_offset + expected_size) {
-            MGLError_Set("the buffer is too small");
-            PyBuffer_Release(&buffer_view);
-            return 0;
-        }
-
-        char * ptr = (char *)buffer_view.buf + write_offset;
-
-        const GLMethods & gl = self->context->gl;
-
-        gl.ActiveTexture(GL_TEXTURE0 + self->context->default_texture_unit);
-        gl.BindTexture(GL_TEXTURE_2D, self->texture_obj);
-        gl.PixelStorei(GL_PACK_ALIGNMENT, alignment);
-        gl.PixelStorei(GL_UNPACK_ALIGNMENT, alignment);
-        gl.GetTexImage(GL_TEXTURE_2D, level, base_format, pixel_type, ptr);
-
-        PyBuffer_Release(&buffer_view);
-
-    }
-
-    Py_RETURN_NONE;
-}
-
 PyObject * MGLTexture_write(MGLTexture * self, PyObject * args) {
     PyObject * data;
     PyObject * viewport;
@@ -8387,7 +8301,6 @@ PyMethodDef MGLTexture_methods[] = {
     {"use", (PyCFunction)MGLTexture_use, METH_VARARGS},
     {"build_mipmaps", (PyCFunction)MGLTexture_build_mipmaps, METH_VARARGS},
     {"read", (PyCFunction)MGLTexture_read, METH_VARARGS},
-    {"read_into", (PyCFunction)MGLTexture_read_into, METH_VARARGS},
     {"release", (PyCFunction)MGLTexture_release, METH_NOARGS},
     {},
 };

@@ -303,14 +303,7 @@ class Texture:
         """
         return self.mglo.read(level, alignment)
 
-    def read_into(
-        self,
-        buffer: Any,
-        *,
-        level: int = 0,
-        alignment: int = 1,
-        write_offset: int = 0,
-    ) -> None:
+    def read_into(self, buffer: Any, *, level: int = 0, alignment: int = 1, write_offset: int = 0) -> None:
         """
         Read the content of the texture into a bytearray or :py:class:`~moderngl.Buffer`.
 
@@ -335,10 +328,14 @@ class Texture:
             alignment (int): The byte alignment of the pixels.
             write_offset (int): The write offset.
         """
-        if type(buffer) is Buffer:
-            buffer = buffer.mglo
 
-        return self.mglo.read_into(buffer, level, alignment, write_offset)
+        data = self.mglo.read(level, alignment)
+
+        if type(buffer) is Buffer:
+            buffer.mglo.write(data, 0)
+            return
+
+        memoryview(buffer)[write_offset:write_offset + len(data)] = data
 
     def write(
         self,
