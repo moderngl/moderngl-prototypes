@@ -123,7 +123,12 @@ class Buffer:
             offset (int): The read offset in bytes.
             write_offset (int): The write offset in bytes.
         """
-        return self.mglo.read_into(buffer, size, offset, write_offset)
+
+        if type(buffer) is Buffer:
+            buffer = buffer.mglo
+            raise NotImplementedError
+
+        memoryview(buffer)[write_offset:] = self.mglo.read(size, offset)
 
     def read_chunks(self, chunk_size: int, start: int, step: int, count: int) -> bytes:
         """
