@@ -5231,8 +5231,7 @@ PyObject * MGLTexture_read(MGLTexture * self, PyObject * args) {
     expected_size = (expected_size + alignment - 1) / alignment * alignment;
     expected_size = expected_size * height;
 
-    PyObject * result = PyBytes_FromStringAndSize(0, expected_size);
-    char * data = PyBytes_AS_STRING(result);
+    PyObject * res = PyBytes_FromStringAndSize(NULL, expected_size);
 
     int pixel_type = self->data_type->gl_type;
     int base_format = self->depth ? GL_DEPTH_COMPONENT : self->data_type->base_format[self->components];
@@ -5244,6 +5243,12 @@ PyObject * MGLTexture_read(MGLTexture * self, PyObject * args) {
 
     gl.PixelStorei(GL_PACK_ALIGNMENT, alignment);
     gl.PixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+
+    gl.BindFramebuffer(GL_FRAMEBUFFER, self->context->temp_framebuffer);
+    gl.FramebufferTexture2D(GL_FRAMEBUFFER, self->depth ? GL_DEPTH_ATTACHMENT : GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, self->texture_obj, level);
+    gl.ReadBuffer(self->depth ? GL_NONE : GL_COLOR_ATTACHMENT0);
+    gl.ReadPixels(0, 0, width, height, base_format, pixel_type, PyBytes_AsString(res));
+    gl.BindFramebuffer(GL_FRAMEBUFFER, self->context->bound_framebuffer->framebuffer_obj);
 
     // To determine the required size of pixels, use glGetTexLevelParameter to determine
     // the dimensions of the internal texture image, then scale the required number of pixels
@@ -5265,9 +5270,7 @@ PyObject * MGLTexture_read(MGLTexture * self, PyObject * args) {
     // printf("level_width: %d\n", level_width);
     // printf("level_height: %d\n", level_height);
 
-    gl.GetTexImage(GL_TEXTURE_2D, level, base_format, pixel_type, data);
-
-    return result;
+    return res;
 }
 
 PyObject * MGLTexture_read_into(MGLTexture * self, PyObject * args) {
