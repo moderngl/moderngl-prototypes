@@ -8233,7 +8233,6 @@ PyMethodDef module_methods[] = {
 PyMethodDef MGLBuffer_methods[] = {
     {"write", (PyCFunction)MGLBuffer_write, METH_VARARGS},
     {"read", (PyCFunction)MGLBuffer_read, METH_VARARGS},
-    {"read_into", (PyCFunction)MGLBuffer_read_into, METH_VARARGS},
     {"write_chunks", (PyCFunction)MGLBuffer_write_chunks, METH_VARARGS},
     {"read_chunks", (PyCFunction)MGLBuffer_read_chunks, METH_VARARGS},
     {"read_chunks_into", (PyCFunction)MGLBuffer_read_chunks_into, METH_VARARGS},
