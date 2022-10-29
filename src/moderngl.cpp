@@ -8003,8 +8003,7 @@ PyObject * fmtdebug(PyObject * self, PyObject * args) {
 
 PyObject * create_context(PyObject * self, PyObject * args, PyObject * kwargs) {
     PyObject * backend;
-    PyObject * backend_name = PyDict_GetItemString(kwargs, "backend");
-    PyErr_Clear();
+    PyObject * backend_name = kwargs ? PyDict_GetItemString(kwargs, "backend") : NULL;
 
     PyObject * glcontext = PyImport_ImportModule("glcontext");
     if (!glcontext) {
