@@ -73,9 +73,6 @@ struct MGLComputeShader {
 struct MGLContext {
     PyObject_HEAD
     PyObject * ctx;
-    PyObject * enter_func;
-    PyObject * exit_func;
-    PyObject * release_func;
     PyObject * extensions;
     MGLFramebuffer * default_framebuffer;
     MGLFramebuffer * bound_framebuffer;
@@ -97,6 +94,7 @@ struct MGLContext {
     int provoking_vertex;
     float polygon_offset_factor;
     float polygon_offset_units;
+    int temp_framebuffer;
     GLMethods gl;
     bool released;
 };
@@ -8028,7 +8026,6 @@ PyObject * create_context(PyObject * self, PyObject * args, PyObject * kwargs) {
 
     MGLContext * ctx = PyObject_New(MGLContext, MGLContext_type);
     ctx->released = false;
-
     ctx->wireframe = false;
 
     // Ensure we have a callable
@@ -8036,25 +8033,10 @@ PyObject * create_context(PyObject * self, PyObject * args, PyObject * kwargs) {
         MGLError_Set("The returned glcontext is not a callable");
         return NULL;
     }
+
     // Create context by simply forwarding all arguments
     ctx->ctx = PyObject_Call(backend, args, kwargs);
     if (!ctx->ctx) {
-
-        return NULL;
-    }
-
-    ctx->enter_func = PyObject_GetAttrString(ctx->ctx, "__enter__");
-    if (!ctx->enter_func) {
-        return NULL;
-    }
-
-    ctx->exit_func = PyObject_GetAttrString(ctx->ctx, "__exit__");
-    if (!ctx->exit_func) {
-        return NULL;
-    }
-
-    ctx->release_func = PyObject_GetAttrString(ctx->ctx, "release");
-    if (!ctx->release_func) {
         return NULL;
     }
 
@@ -8206,10 +8188,14 @@ PyObject * create_context(PyObject * self, PyObject * args, PyObject * kwargs) {
     ctx->polygon_offset_factor = 0.0f;
     ctx->polygon_offset_units = 0.0f;
 
+    int temp_framebuffer = 0;
+    gl.GenFramebuffers(1, (GLuint *)&temp_framebuffer);
+    ctx->temp_framebuffer = temp_framebuffer;
+
     gl.GetError(); // clear errors
 
     if (PyErr_Occurred()) {
-        return 0;
+        return NULL;
     }
 
     Py_INCREF(ctx);
