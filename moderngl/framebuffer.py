@@ -324,11 +324,14 @@ class Framebuffer:
             dtype (str): Data type.
             write_offset (int): The write offset.
         """
-        if type(buffer) is Buffer:
-            buffer = buffer.mglo
-            raise NotImplementedError
 
-        memoryview(buffer)[write_offset:] = self.mglo.read(viewport, components, attachment, alignment, clamp, dtype)
+        data = self.mglo.read(viewport, components, attachment, alignment, clamp, dtype)
+
+        if type(buffer) is Buffer:
+            buffer.mglo.write(data, 0)
+            return
+
+        memoryview(buffer)[write_offset:write_offset + len(data)] = data
 
     def release(self) -> None:
         """Release the ModernGL object."""
